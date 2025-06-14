@@ -18,7 +18,7 @@ resolutionButtons.forEach(btn => {
     });
 });
 
-resolutionButtons[1].checked = true;
+resolutionButtons[0].checked = true;
 
 //Counter
 
