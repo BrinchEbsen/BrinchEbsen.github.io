@@ -1,6 +1,25 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+const rainbowCheckbox = document.getElementById("rainbow");
+
+const resolutionButtons = document.querySelectorAll('[name="resolution"]');
+
+resolutionButtons.forEach(btn => {
+    btn.addEventListener("input", (e) => {
+        const tgt = e.target;
+
+        const sizes = tgt.getAttribute("value").split("x");
+
+        canvas.width = sizes[0];
+        canvas.height = sizes[1];
+
+        console.log(sizes);
+    });
+});
+
+resolutionButtons[1].checked = true;
+
 //Counter
 
 let counter = 0;
@@ -36,6 +55,13 @@ speedInput.addEventListener("input", (e) => {
     speed = Number(e.target.value);
 });
 
+const speedReset = document.getElementById("resetSpeed");
+speedReset.addEventListener("click", (e) => {
+    speed = 1.0;
+    speedInput.value = speed;
+    setSpeedLabel(speed);
+});
+
 //Seed
 
 let startSeed = 0;
@@ -47,6 +73,12 @@ startSeedInput.addEventListener("input", (e) => {
     startSeed = e.target.value;
 });
 
+const seedReset = document.getElementById("resetSeed");
+seedReset.addEventListener("click", (e) => {
+    startSeed = 0;
+    startSeedInput.value = startSeed;
+});
+
 //Number of sectors
 
 let numSectors = 30;
@@ -56,6 +88,12 @@ numSectorsInput.value = numSectors;
 
 numSectorsInput.addEventListener("input", (e) => {
     numSectors = e.target.value;
+});
+
+const numSectorsReset = document.getElementById("resetNumSectors");
+numSectorsReset.addEventListener("click", (e) => {
+    numSectors = 30;
+    numSectorsInput.value = numSectors;
 });
 
 //Color
@@ -78,6 +116,101 @@ colorInput.addEventListener("change", (e) => {
 
 colorReset.addEventListener("click", (e) => {
     resetSectorColor();
+});
+
+//Params
+
+let params = [
+    { default: 10, min: -50, max: 50 },
+    { default: 400, min: 0, max: 2000 },
+    { default: 80, min: 0, max: 500 },
+    { default: 50, min: 0, max: 500 },
+    { default: 8, min: 0, max: 20 },
+    { default: 20, min: 0, max: 200 },
+    { default: 10, min: 0, max: 200 },
+    { default: 80, min: 0, max: 200 },
+    { default: 16, min: 0, max: 200 },
+    { default: 128, min: 80, max: 1000 },
+    { default: 0.85, min: 0, max: 1, step: 0.01 }
+];
+
+function initParams() {
+    params.forEach(param => {
+        param.val = param.default;
+    });
+}
+
+initParams();
+
+const paramsDiv = document.getElementById("params");
+
+//Create controls for each parameter
+for(let i = 0; i < params.length; i++) {
+    //Create the input range element
+    const inputElem = document.createElement("input");
+    inputElem.setAttribute("type", "range");
+    inputElem.setAttribute("min", params[i].min.toString());
+    inputElem.setAttribute("max", params[i].max.toString());
+    let step = params[i].step == null ? "0.1" : params[i].step;
+    inputElem.setAttribute("step", step);
+    inputElem.setAttribute("value", params[i].val.toString());
+
+    //Create label element showing the value
+    const labelElem = document.createElement("label");
+    labelElem.textContent = params[i].val.toString();
+
+    //Create set method for parameter
+    params[i].set = (v) => {
+        params[i].val = v;
+        inputElem.value = v;
+        labelElem.textContent = v.toString();
+    }
+
+    //Make input element change value
+    inputElem.addEventListener("input", (e) => {
+        params[i].val = Number(e.target.value);
+        labelElem.textContent = params[i].val.toString();
+    });
+
+    //Create reset button
+    const buttonElem = document.createElement("button");
+    buttonElem.textContent = "Reset";
+    buttonElem.addEventListener("click", (e) => {
+        params[i].set(params[i].default);
+    });
+
+    //Add elements to the div
+    paramsDiv.appendChild(buttonElem);
+    paramsDiv.appendChild(inputElem);
+    paramsDiv.appendChild(labelElem);
+    paramsDiv.appendChild(document.createElement("br"));
+
+    //Add randomize method to parameter
+    params[i].randomize = () => {
+        let val = (Math.random() * (params[i].max - params[i].min)) + params[i].min;
+        params[i].set(val);
+    }
+
+    //Add reset method to parameter
+    params[i].reset = () => {
+        params[i].set(params[i].default);
+    }
+}
+
+//"Randomize All" button
+const randomzeParamsBtn = document.getElementById("randomizeParams");
+randomzeParamsBtn.addEventListener("click", (e) => {
+    params.forEach(param => {
+        param.randomize();
+    });
+});
+
+//"Reset All" button
+const resetParamsBtn = document.getElementById("resetParams");
+resetParamsBtn.addEventListener("click", (e) => {
+    params.forEach(param => {
+        param.reset();
+    });
 });
 
 
@@ -151,6 +284,15 @@ function drawSector(r1, r2, r3, angStart, angEnd, color) {
         ctx.canvas.height/2
     ];
 
+    //validation
+    if (r3 < 0) return;
+
+    if (r1 < 0) r1 = 0;
+    if (r2 < 0) r2 = 0;
+
+    if (r2 > r3) r2 = r3;
+    if (r1 > r2) r1 = r2;
+
     //Create a gradient that starts from the middle and to the outer radius.
     const gradient = ctx.createRadialGradient(middle[0], middle[1], 0, middle[0], middle[1], r3);
 
@@ -210,27 +352,23 @@ function drawFrame() {
         //console.log("lifeCycle: "+lifeCycle);
 
         //radii
-        
-        n1 = RandF() * 4.0 + 10.0; //Range: 10 to 14
-        n2 = n1 - (lifeCycle * 10.0);
-        let radius2 = 400.0 / n2; //Radius dividing the two sectors
 
-        n1 = RandF() * 80.0 + 50.0; //Range: 50 to 130
+        n1 = RandF() * 4.0 + params[0].val; //Range: 10 to 14
+        n2 = n1 - (lifeCycle * params[0].val);
+        let radius2 = params[1].val / n2; //Radius dividing the two sectors
+
+        n1 = RandF() * params[2].val + params[3].val; //Range: 50 to 130
         let radius3 = radius2 + (n1 / n2); //Outer radius
         
-        let radius1 = radius2 - (n1 * (1.0/8.0)); //Inner radius
-
-        //Extra validation
-        if (radius2 > radius3) radius2 = radius3;
-        if (radius1 > radius2) radius1 = radius2;
+        let radius1 = radius2 - (n1 * (1.0/params[4].val)); //Inner radius
 
         //Start angle
         n1 = RandF() * Math.PI * 2; //Range: 0 to 2*PI
         n2 = RandF(); //Range: 0 to 1
-        const startAng = timeLine * (n2 * 20.0 - 10.0) + n1;
+        const startAng = timeLine * (n2 * params[5].val - params[6].val) + n1;
 
         //End angle
-        n1 = RandF() * 80.0 + 16.0; //Range: 16 to 96
+        n1 = RandF() * params[7].val + params[8].val; //Range: 16 to 96
         const endAng = n1 * 0.017453292 + startAng;
 
         //Calculate colors.
@@ -239,9 +377,9 @@ function drawFrame() {
 
         let alpha = lifeCycle * 1000.0;
 
-        if (alpha > 128.0) alpha = 128.0;
+        if (alpha > params[9].val) alpha = params[9].val;
 
-        if (lifeCycle > 0.85) {
+        if (lifeCycle > params[10].val) {
             alpha = alpha * ((1.0 - lifeCycle) * (2.0/3.0) * 10.0);
         }
 
@@ -258,8 +396,22 @@ function drawFrame() {
         //Pad length to 2 characters
         if (alpha.length < 2) alpha = "0"+alpha;
 
-        //Add alpha to base colour
-        const color = sectorColor + alpha;
+        let color;
+        if (rainbowCheckbox.checked) {
+            //Store the random seed so it doesn't affect later drawn sectors
+            let tempSeed = randSeed;
+            let r = Rand32() % 0xFF;
+            let g = Rand32() % 0xFF;
+            let b = Rand32() % 0xFF;
+            randSeed = tempSeed;
+            if (r < 0x10) r = 0x10;
+            if (g < 0x10) g = 0x10;
+            if (b < 0x10) b = 0x10;
+            color = "#" + r.toString(16) + g.toString(16) + b.toString(16);
+        } else {
+            color = sectorColor;
+        }
+        color += alpha;
 
         drawSector(radius1, radius2, radius3, startAng, endAng, color);
     }

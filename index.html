@@ -9,22 +9,42 @@
 <body>
     <canvas id="canvas" width="1280" height="960"></canvas>
     <br>
+    <input type="radio" id="size1" name="resolution" value="640x480">
+    <label for="size1">640x480</label>
+    <input type="radio" id="size2" name="resolution" value="1280x960">
+    <label for="size2">1280x960</label>
+    <input type="radio" id="size3" name="resolution" value="1920x1440">
+    <label for="size3">1920x1440</label>
+    <br>
+    <h3>Options:</h3>
     <button id="resetCounter">Reset</button>
     <label>Counter:</label>
     <label id="counter"></label>
     <br>
+    <button id="resetSpeed">Reset</button>
     <label>Speed:</label>
     <input type="range" id="speed" min="-10.0" max="10.0" step="0.1" value="1">
     <label id="speedLabel">1x</label>
     <br>
+    <button id="resetSeed">Reset</button>
     <label>Seed:</label>
     <input type="number" id="startSeed" min="0" max="1000" value="0">
     <br>
+    <button id="resetNumSectors">Reset</button>
     <label>Number of sectors:</label>
     <input type="number" id="numSectors" min="0" max="1000" value="30">
     <br>
+    <button id="resetColor">Reset</button>
     <label>Color:</label>
     <input type="color" id="color">
-    <button id="resetColor">Reset</button>
+    <label>Randomized:</label>
+    <input type="checkbox" id="rainbow">
+    <br>
+    <h4>Misc parameters:</h4>
+    <div id="params">
+        <button id="randomizeParams">Randomize All</button>
+        <button id="resetParams">Reset All</button>
+        <br>
+    </div>
 </body>
 </html>
