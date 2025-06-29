@@ -1,29 +1,11 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+//Animation frames
+const frames = [];
+
 //Show debug text on the canvas
 let DEBUG = false;
-
-document.addEventListener('keypress', (ev) => {
-    console.log(ev.code);
-    if (ev.code == "KeyD") {
-        DEBUG = !DEBUG;
-    }
-});
-
-//Used to make mouse hidden if left idle for a while
-let mouseIdleTimer = 120;
-document.addEventListener('mousemove', () => {
-    mouseIdleTimer = 120;
-});
-
-//load animation frames
-const frames = [];
-for (let i = 0; i < 12; i++) {
-    const img = new Image();
-    img.src = `frames/spo_${i.toString().padStart(4, '0')}.png`;
-    frames.push(img);
-}
 
 //The speed the spos travel at
 let spoSpeed = 5;
@@ -33,6 +15,35 @@ let spoAnimSpeed = 1;
 const spoDensityTarget = 1;
 //the array of spos
 const spos = [];
+
+//Used to make mouse hidden if left idle for a while
+let mouseIdleTimer = 120;
+
+document.addEventListener('mousemove', () => {
+    mouseIdleTimer = 120;
+});
+document.addEventListener('keypress', (ev) => {
+    console.log(ev.code);
+    if (ev.code == "KeyD") {
+        DEBUG = !DEBUG;
+    }
+});
+
+//Create a promise that is fulfilled when all frames are loaded
+//and also populate the frames array
+function preloadFrames() {
+    const promises = [];
+    for (let i = 0; i < 12; i++) {
+        const img = new Image();
+        img.src = `frames/spo_${i.toString().padStart(4, '0')}.png`;
+        frames.push(img);
+
+        promises.push(new Promise(resolve => {
+            img.onload = resolve;
+        }));
+    }
+    return Promise.all(promises);
+}
 
 function handleMouse() {
     const isHidden = document.body.classList.contains("mouseHidden");
@@ -169,4 +180,9 @@ function main() {
     }, 100);
 }
 
-main();
+addEventListener('load', () => {
+    //Wait for frames to load before running code
+    preloadFrames().then(() => {
+        main();
+    })
+})
