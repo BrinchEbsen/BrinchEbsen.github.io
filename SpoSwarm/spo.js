@@ -1,0 +1,53 @@
+const spoSpeed = 4;
+
+class Spo {
+    constructor(x, y, frames) {
+        this.x = x;
+        this.y = y;
+        this.frames = frames;
+
+        this.currentFrame = 0;
+    }
+
+    get width() {
+        return frames[0].width;
+    }
+    get height() {
+        return frames[0].height;
+    }
+
+    chooseRandomFrame() {
+        let r = Math.random();
+        r *= this.frames.length;
+        this.currentFrame = Math.floor(r);
+    }
+
+    move() {
+        this.x += spoSpeed;
+        this.y += spoSpeed;
+    }
+
+    draw(ctx) {
+        this.currentFrame++;
+
+        if (this.currentFrame >= this.frames.length) {
+            this.currentFrame = 0;
+        }
+
+        ctx.drawImage(this.frames[this.currentFrame], this.x, this.y);
+    }
+
+    get offScreen() {
+        return (this.x > canvas.width || this.y > canvas.height);
+    }
+
+    pickNewStartPosition() {
+        if (Math.random() > 0.5) {
+            this.x = -this.width;
+            this.y = (Math.random() * (canvas.height + this.height)) - this.height;
+        } else {
+            this.y = -this.height;
+            this.x = (Math.random() * (canvas.width + this.width)) - this.width;
+        }
+    }
+}
