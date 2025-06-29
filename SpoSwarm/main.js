@@ -17,13 +17,25 @@ function fitCanvasToWindow() {
 }
 
 function sortSpos() {
-    //The sum of a spo's x and y (respective to the lower-left corner)
-    //can be used to find their "depth" into the scene
+    //Using cross-product to determine difference in depth
     spos.sort((s1, s2) => {
-        return (s1.x + (canvas.height - s1.y)) <
-               (s2.x + (canvas.height - s2.y));
+        const dx = s2.x - s1.x;
+        const dy = s2.y - s1.y;
+        const cross = (dx - dy);
+        
+        if (cross < 0) return -1;
+        if (cross > 0) return 1;
+        return 0;
     });
 }
+
+let mX;
+let mY;
+
+document.addEventListener('mousemove', (ev) => {
+    mX = ev.clientX;
+    mY = ev.clientY;
+});
 
 function drawFrame() {
     fitCanvasToWindow();
