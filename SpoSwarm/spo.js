@@ -1,12 +1,10 @@
-const spoSpeed = 4;
-
 class Spo {
     constructor(x, y, frames) {
         this.x = x;
         this.y = y;
         this.frames = frames;
 
-        this.currentFrame = 0;
+        this.timeLine = 0;
     }
 
     get width() {
@@ -17,9 +15,7 @@ class Spo {
     }
 
     chooseRandomFrame() {
-        let r = Math.random();
-        r *= this.frames.length;
-        this.currentFrame = Math.floor(r);
+        this.timeLine = Math.random() * this.frames.length;
     }
 
     move() {
@@ -28,13 +24,11 @@ class Spo {
     }
 
     draw(ctx) {
-        this.currentFrame++;
+        this.timeLine += spoAnimSpeed;
+        this.timeLine %= this.frames.length;
+        const frame = Math.floor(this.timeLine);
 
-        if (this.currentFrame >= this.frames.length) {
-            this.currentFrame = 0;
-        }
-
-        ctx.drawImage(this.frames[this.currentFrame], this.x, this.y);
+        ctx.drawImage(this.frames[frame], this.x, this.y);
     }
 
     get offScreen() {
