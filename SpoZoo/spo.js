@@ -92,7 +92,44 @@ class Spo {
         } while (this.dir[0] == 0 && this.dir[1] == 0);
     }
 
-    handleWalk() {
+    turn(right = true, times = 1) {
+        for (let i = 0; i < times; i++) {
+            if (this.dir[0] == -1) {
+                switch (this.dir[1]) {
+                    case -1: //Up-left (-1, -1)
+                        this.dir = right ? [0, -1] : [-1, 0]; return;
+                    case 0: //Left (-1, 0)
+                        this.dir = right ? [-1, -1] : [-1, 1]; return;
+                    case 1: //Down left (-1, 1)
+                        this.dir = right? [-1, 0] : [0, 1]; return;
+                }
+            } else if (this.dir[0] == 0) {
+                switch (this.dir[1]) {
+                    case -1: //Up (0, -1)
+                        this.dir = right ? [1, -1] : [-1, -1]; return;
+                    case 0: //invalid (0, 0)
+                        this.dir = [0, 1]; return;
+                    case 1: //Down (0, 1)
+                        this.dir = right? [-1, 1] : [1, 1]; return;
+                }
+            } else {
+                switch (this.dir[1]) {
+                    case -1: //Up-right (1, -1)
+                        this.dir = right ? [1, 0] : [0, -1]; return;
+                    case 0: //Right (1, 0)
+                        this.dir = right ? [1, 1] : [1, -1]; return;
+                    case 1: //Down-right (1, 1)
+                        this.dir = right? [0, 1] : [1, 0]; return;
+                }
+            }
+        }
+    }
+
+    makeRandomTurns(times = 1) {
+        this.turn(Math.random() > 0.5, times);
+    }
+
+    takeStep(distMult = 1) {
         let moveDir = [
             this.dir[0],
             this.dir[1]
@@ -104,13 +141,12 @@ class Spo {
             moveDir[1] /= Math.SQRT2;
         }
         
-        this.x += moveDir[0] * this.speed;
-        this.y += moveDir[1] * this.speed;
-        
-        //if (this.clipInBounds()) {
-        //    this.state = "stand";
-        //    return;
-        //}
+        this.x += moveDir[0] * this.speed * distMult;
+        this.y += moveDir[1] * this.speed * distMult;
+    }
+
+    handleWalk() {
+        this.takeStep();
 
         this.checkWrapScreen();
 
@@ -141,6 +177,22 @@ class Spo {
         }
     }
 
+    handleFlee() {
+        this.takeStep(2);
+
+        if (Math.random() < 0.1) {
+            this.makeRandomTurns();
+        }
+
+        this.checkWrapScreen();
+
+        if (this.tickTimer()) {
+            this.state = "stand";
+            this.setTimer();
+            return;
+        }
+    }
+
     move() {
         switch(this.state) {
             case "walk":
@@ -151,6 +203,9 @@ class Spo {
                 break;
             case "spin":
                 this.handleSpin();
+                break;
+            case "flee":
+                this.handleFlee();
                 break;
         }
     }
@@ -206,6 +261,10 @@ class Spo {
         return "walk_"+this.getDirectionName();
     }
 
+    getFleeAnimName() {
+        return "walk_"+this.getDirectionName();
+    }
+
     getAnimName() {
         switch(this.state) {
             case "stand":
@@ -216,6 +275,8 @@ class Spo {
                 return this.getSpinAnimName();
             case "grabbed":
                 return this.getGrabbedAnimName();
+            case "flee":
+                return this.getFleeAnimName();
         }
     }
 
@@ -226,11 +287,16 @@ class Spo {
             return;
         }
 
-        if (this.state == "grabbed") {
-            this.animations[anim].draw(this.x, this.y, 2, 1.4);
-        } else {
-            this.animations[anim].draw(this.x, this.y);
+        let speed = 1;
+        if (this.state == "grabbed" || this.state == "flee") {
+            speed = 2;
         }
+        let size = 1;
+        if (this.state == "grabbed") {
+            size = 1.4;
+        }
+
+        this.animations[anim].draw(this.x, this.y, speed, size);
     }
 
     get offScreen() {
@@ -254,7 +320,7 @@ class Spo {
     }
 
     scatterFrom(x, y) {
-        if (this.state == "grabbed") return;
+        if (this.state == "grabbed" || this.state == "flee") return;
 
         if (dist(this.centerX, this.centerY, x, y) > 400) return;
 
@@ -274,7 +340,7 @@ class Spo {
     }
 
     releaseGrab() {
-        this.state = "walk";
+        this.state = "flee";
         this.setTimer(240);
     }
 
