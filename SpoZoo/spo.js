@@ -15,6 +15,12 @@ class Spo {
         this.dir = startDir;
         this.speed = 2;
 
+        this.target = {
+            x: 0,
+            y: 0,
+            dir: [0, 1]
+        };
+
         this.setTimer();
         this.createAnimations();
     }
@@ -129,6 +135,16 @@ class Spo {
         this.turn(Math.random() > 0.5, times);
     }
 
+    walkTo(x, y, finalDir) {
+        if (this.state == "grabbed") return;
+
+        this.target.x = x;
+        this.target.y = y;
+        this.target.dir = finalDir;
+
+        this.state = "walktopoint";
+    }
+
     takeStep(distMult = 1) {
         let moveDir = [
             this.dir[0],
@@ -193,6 +209,34 @@ class Spo {
         }
     }
 
+    handleWalkToPoint() {
+        const tolerance = 6;
+
+        if (dist(this.centerX, this.centerY, this.target.x, this.target.y) < tolerance) {
+            this.dir = this.target.dir;
+            this.centerX = this.target.x;
+            this.centerY = this.target.y;
+            this.state = "standstill";
+            return;
+        }
+
+        if (Math.abs(this.centerX - this.target.x) > (tolerance/2)) {
+            if (this.centerX < this.target.x) {
+                this.dir = [1, 0];
+            } else {
+                this.dir = [-1, 0];
+            }
+        } else {
+            if (this.centerY < this.target.y) {
+                this.dir = [0, 1];
+            } else {
+                this.dir = [0, -1];
+            }
+        }
+
+        this.takeStep();
+    }
+
     move() {
         switch(this.state) {
             case "walk":
@@ -206,6 +250,11 @@ class Spo {
                 break;
             case "flee":
                 this.handleFlee();
+                break;
+            case "walktopoint":
+                this.handleWalkToPoint();
+                break;
+            case "standstill":
                 break;
         }
     }
@@ -257,14 +306,6 @@ class Spo {
         }
     }
 
-    getGrabbedAnimName() {
-        return "walk_"+this.getDirectionName();
-    }
-
-    getFleeAnimName() {
-        return "walk_"+this.getDirectionName();
-    }
-
     getAnimName() {
         switch(this.state) {
             case "stand":
@@ -274,9 +315,13 @@ class Spo {
             case "spin":
                 return this.getSpinAnimName();
             case "grabbed":
-                return this.getGrabbedAnimName();
+                return "walk_"+this.getDirectionName();
             case "flee":
-                return this.getFleeAnimName();
+                return "walk_"+this.getDirectionName();
+            case "walktopoint":
+                return "walk_"+this.getDirectionName();
+            case "standstill":
+                return "stand_"+this.getDirectionName();
         }
     }
 
@@ -328,6 +373,11 @@ class Spo {
         this.setTimer();
         this.dir = simpleUnitVectorTo(this.centerX, this.centerY, x, y);
         this.dir = [-this.dir[0], -this.dir[1]]; //invert
+    }
+
+    makeSpin(duration) {
+        this.state = "spin";
+        this.setTimer(duration);
     }
 
     lookAtIfStanding(x, y) {

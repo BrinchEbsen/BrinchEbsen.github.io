@@ -57,6 +57,9 @@ canvas.addEventListener('mouseleave', () => {
     });
 });
 canvas.addEventListener('mousedown', (ev) => {
+    //Interrupt easter egg on mouse click because it scatters the spos
+    waitForEasterEgg = false;
+    
     let oneIsGrabbed = false;
     spos.forEach(spo => {
         if (!oneIsGrabbed) {
@@ -72,10 +75,59 @@ canvas.addEventListener('mouseup', () => {
     });
 });
 document.addEventListener('keypress', (ev) => {
+    handleEasterEggInput(ev.code);
+
     if (ev.code == "KeyD") {
         DEBUG = !DEBUG;
     }
 });
+
+let easterEggProgress = 0;
+const easterEggKeys = ["KeyS", "KeyP", "KeyO"];
+
+const letterS = [30, 30];
+const letterP = [letterS[0]+100, letterS[1]];
+const letterO = [letterS[0]+200, letterS[1]];
+
+const spoEasterEgg = [
+    [letterS[0]     , letterS[1]],
+    [letterS[0] + 20, letterS[1]],
+    [letterS[0] + 40, letterS[1]],
+    [letterS[0]     , letterS[1] + 20],
+    [letterS[0]     , letterS[1] + 40],
+    [letterS[0] + 20, letterS[1] + 40],
+    [letterS[0] + 40, letterS[1] + 40],
+    [letterS[0] + 40, letterS[1] + 60],
+    [letterS[0]     , letterS[1] + 80],
+    [letterS[0] + 20, letterS[1] + 80],
+    [letterS[0] + 40, letterS[1] + 80],
+
+    [letterP[0]     , letterP[1]],
+    [letterP[0] + 20, letterP[1]],
+    [letterP[0] + 40, letterP[1]],
+    [letterP[0]     , letterP[1] + 20],
+    [letterP[0] + 40, letterP[1] + 20],
+    [letterP[0]     , letterP[1] + 40],
+    [letterP[0] + 20, letterP[1] + 40],
+    [letterP[0] + 40, letterP[1] + 40],
+    [letterP[0]     , letterP[1] + 60],
+    [letterP[0]     , letterP[1] + 80],
+
+    [letterO[0]     , letterO[1]],
+    [letterO[0] + 20, letterO[1]],
+    [letterO[0] + 40, letterO[1]],
+    [letterO[0]     , letterO[1] + 20],
+    [letterO[0] + 40, letterO[1] + 20],
+    [letterO[0]     , letterO[1] + 40],
+    [letterO[0] + 40, letterO[1] + 40],
+    [letterO[0]     , letterO[1] + 60],
+    [letterO[0] + 40, letterO[1] + 60],
+    [letterO[0]     , letterO[1] + 80],
+    [letterO[0] + 20, letterO[1] + 80],
+    [letterO[0] + 40, letterO[1] + 80],
+];
+
+let waitForEasterEgg = false;
 
 function handleMouse() {
     const isHidden = document.body.classList.contains("mouseHidden");
@@ -95,6 +147,38 @@ function makeSposCurious(x, y) {
     spos.forEach(spo => {
         spo.lookAtIfStanding(x, y);
     });
+}
+
+function handleEasterEggInput(keyCode) {
+    if (!easterEggKeys.includes(keyCode)) {
+        easterEggProgress = 0;
+        return;
+    }
+
+    if (easterEggKeys[easterEggProgress] == keyCode) {
+        easterEggProgress++;
+    }
+
+    if (easterEggProgress >= easterEggKeys.length) {
+        easterEggProgress = 0;
+        formSpoWord();
+    }
+}
+
+function formSpoWord() {
+    if (waitForEasterEgg) return;
+
+    //Keep track of this separately, so we can skip over spos if needed
+    let eeIndex = 0;
+
+    waitForEasterEgg = true;
+    for (let i = 0; i < spos.length && eeIndex < spoEasterEgg.length; i++) {
+        const spo = spos[i];
+        if (spo.state == "grabbed") continue;
+
+        spo.walkTo(spoEasterEgg[eeIndex][0], spoEasterEgg[eeIndex][1], [0, 1]);
+        eeIndex++;
+    }
 }
 
 //The ratio of spo pixels compared to non-spo pixels
@@ -147,10 +231,47 @@ function removeRandomSpo() {
     spos.splice(index, 1);
 }
 
+function handleEasterEgg() {
+    if (waitForEasterEgg) {
+        let stillWalking = false;
+        let noProgress = true; //Whether there are no spos left to do the formation
+        for (let i = 0; i < spos.length; i++) {
+            const spo = spos[i];
+            //Check if any are still walking to the point
+            if (spo.state == "walktopoint") {
+                stillWalking = true;
+            }
+            //If any are in either of these states, the easter egg is still forming
+            if (spo.state == "walktopoint" || spo.state == "standstill") {
+                noProgress = false;
+            }
+        }
+
+        //If nobody is doing the formation, just cancel the easter egg
+        if (noProgress) {
+            waitForEasterEgg = false;
+            return;
+        }
+
+        //If we're not still forming, make 'em all spin.
+        if (!stillWalking) {
+            waitForEasterEgg = false;
+            for (let i = 0; i < spos.length; i++) {
+                const spo = spos[i];
+                if (spo.state == "standstill") {
+                    spo.makeSpin(240);
+                }
+            }
+        }
+    }
+}
+
 function drawFrame() {
     fitCanvasToWindow();
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    handleEasterEgg();
 
     spos.forEach(spo => {
         spo.move();
@@ -164,6 +285,7 @@ function drawFrame() {
     if (DEBUG) {
         ctx.fillStyle = "white";
         ctx.fillText(`Num: ${spos.length}, Density: ${currentSpoDensity()}, Deviation: ${sposTargetDeviation()}`, 10, 10);
+        ctx.fillText(`Waiting for "SPO": ${waitForEasterEgg}`, 10, 30);
     }
 }
 
