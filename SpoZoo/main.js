@@ -44,16 +44,37 @@ const spos = [];
 //Used to make mouse hidden if left idle for a while
 let mouseIdleTimer = 120;
 
-document.addEventListener('mousemove', () => {
+document.addEventListener('mousemove', (ev) => {
     mouseIdleTimer = 120;
+    makeSposCurious(ev.pageX, ev.pageY);
+    spos.forEach(spo => {
+        spo.mouseMoved(ev.pageX, ev.pageY);
+    });
+});
+canvas.addEventListener('mouseleave', () => {
+    spos.forEach(spo => {
+        spo.mouseLeave();
+    });
+});
+canvas.addEventListener('mousedown', (ev) => {
+    let oneIsGrabbed = false;
+    spos.forEach(spo => {
+        if (!oneIsGrabbed) {
+            spo.mouseDown(ev.pageX, ev.pageY);
+            if (spo.state == "grabbed") oneIsGrabbed = true;
+        }
+        spo.scatterFrom(ev.pageX, ev.pageY);
+    });
+});
+canvas.addEventListener('mouseup', () => {
+    spos.forEach(spo => {
+        spo.mouseUp();
+    });
 });
 document.addEventListener('keypress', (ev) => {
     if (ev.code == "KeyD") {
         DEBUG = !DEBUG;
     }
-});
-canvas.addEventListener('click', (ev) => {
-    scatterSpos(ev.pageX, ev.pageY);
 });
 
 function handleMouse() {
@@ -70,9 +91,9 @@ function handleMouse() {
     }
 }
 
-function scatterSpos(x, y) {
+function makeSposCurious(x, y) {
     spos.forEach(spo => {
-        spo.scatterFrom(x, y);
+        spo.lookAtIfStanding(x, y);
     });
 }
 
@@ -119,6 +140,9 @@ function addNewSpo() {
 
 function removeRandomSpo() {
     const index = Math.floor(randomFromTo(0, spos.length));
+    
+    //Ignore spos that are grabbed (better UX)
+    if (spos[index].state == "grabbed") return;
 
     spos.splice(index, 1);
 }

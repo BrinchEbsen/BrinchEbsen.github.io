@@ -22,8 +22,14 @@ class Spo {
     get centerX() {
         return this.x + Math.floor(frameSize/2);
     }
+    set centerX(val) {
+        this.x = val - frameSize/2;
+    }
     get centerY() {
         return this.y + Math.floor(frameSize/2);
+    }
+    set centerY(val) {
+        this.y = val - frameSize/2;
     }
 
     setTimer(val = randomFromTo(10, 240)) {
@@ -149,33 +155,37 @@ class Spo {
         }
     }
 
-    getGenericAnimName() {
-        let animName = this.state+"_";
+    getDirectionName() {
+        let name = "";
 
         switch(this.dir[1]) {
             case -1:
-                animName += "up";
+                name += "up";
                 break;
             case 1:
-                animName += "down";
+                name += "down";
                 break;
             default: break;
         }
 
         switch(this.dir[0]) {
             case -1:
-                animName += "left";
+                name += "left";
                 break;
             case 1:
-                animName += "right";
+                name += "right";
                 break;
             default: break;
         }
 
-        return animName;
+        return name;
     }
 
-    getSpinAnimFrame() {
+    getGenericAnimName() {
+        return this.state+"_"+this.getDirectionName();
+    }
+
+    getSpinAnimName() {
         let cycle = this.timer % 16;
         cycle = Math.floor(cycle/2);
 
@@ -192,6 +202,10 @@ class Spo {
         }
     }
 
+    getGrabbedAnimName() {
+        return "walk_"+this.getDirectionName();
+    }
+
     getAnimName() {
         switch(this.state) {
             case "stand":
@@ -199,7 +213,9 @@ class Spo {
             case "walk":
                 return this.getGenericAnimName();
             case "spin":
-                return this.getSpinAnimFrame();
+                return this.getSpinAnimName();
+            case "grabbed":
+                return this.getGrabbedAnimName();
         }
     }
 
@@ -209,7 +225,12 @@ class Spo {
             console.error(anim);
             return;
         }
-        this.animations[anim].draw(this.x, this.y);
+
+        if (this.state == "grabbed") {
+            this.animations[anim].draw(this.x, this.y, 2, 1.4);
+        } else {
+            this.animations[anim].draw(this.x, this.y);
+        }
     }
 
     get offScreen() {
@@ -233,11 +254,63 @@ class Spo {
     }
 
     scatterFrom(x, y) {
+        if (this.state == "grabbed") return;
+
         if (dist(this.centerX, this.centerY, x, y) > 400) return;
 
         this.state = "walk";
         this.setTimer();
         this.dir = simpleUnitVectorTo(this.centerX, this.centerY, x, y);
         this.dir = [-this.dir[0], -this.dir[1]]; //invert
+    }
+
+    lookAtIfStanding(x, y) {
+        if (dist(this.centerX, this.centerY, x, y) > 200) return;
+
+        if (this.state == "stand") {
+            //this.setTimer();
+            this.dir = simpleUnitVectorTo(this.centerX, this.centerY, x, y);
+        }
+    }
+
+    releaseGrab() {
+        this.state = "walk";
+        this.setTimer(240);
+    }
+
+    inRange(x, y) {
+        if (
+            (x < this.x+spoBoundsBox.x+spoBoundsBox.w) &&
+            (x > this.x+spoBoundsBox.x) &&
+            (y < this.y+spoBoundsBox.y+spoBoundsBox.h) &&
+            (y > this.y+spoBoundsBox.y)
+        ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    mouseDown(x, y) {
+        if (this.inRange(x, y)) {
+            this.state = "grabbed";
+            this.centerX = x;
+            this.centerY = y;
+        }
+    }
+
+    mouseUp() {
+        if (this.state == "grabbed") this.releaseGrab();
+    }
+
+    mouseLeave() {
+        if (this.state == "grabbed") this.releaseGrab();
+    }
+
+    mouseMoved(x, y) {
+        if (this.state != "grabbed") return;
+
+        this.centerX = x;
+        this.centerY = y;
     }
 }
