@@ -2,6 +2,12 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const frameSize = 128;
+const spoBoundsBox = {
+    x: 32,
+    y: 32,
+    w: 64,
+    h: 64
+};
 
 const animNames = [
     {name: "stand_up", rate: 0.25},
@@ -30,6 +36,8 @@ let DEBUG = false;
 
 //The amount of spo per pixel to aim for
 const spoDensityTarget = 1;
+//The max amount of spos
+const spoLimit = 1000;
 //the array of spos
 const spos = [];
 
@@ -63,7 +71,7 @@ function handleMouse() {
 function currentSpoDensity() {
     if (spos.length == 0) return 0;
 
-    const spoPixels = (frameSize * frameSize) * spos.length;
+    const spoPixels = (spoBoundsBox.w * spoBoundsBox.h) * spos.length;
     const canvasPixels = canvas.width * canvas.height;
 
     return spoPixels / canvasPixels;
@@ -71,7 +79,7 @@ function currentSpoDensity() {
 
 //The number of spos to add/remove to meet the density target
 function sposTargetDeviation() {
-    const oneSpo = frameSize * frameSize;
+    const oneSpo = spoBoundsBox.w * spoBoundsBox.h;
     const spoPixels = oneSpo * spos.length;
     const canvasPixels = canvas.width * canvas.height;
 
@@ -96,7 +104,7 @@ function sortSpos() {
 
 function addNewSpo() {
     const addSpo = new Spo(0, 0);
-    addSpo.randomPosition();
+    addSpo.randomStartPosition();
     spos.push(addSpo);
 }
 
@@ -111,11 +119,9 @@ function drawFrame() {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let i = 0; i < spos.length; i++) {
-        const spo = spos[i];
-
+    spos.forEach(spo => {
         spo.move();
-    }
+    });
 
     sortSpos();
     spos.forEach(spo => {
@@ -124,15 +130,20 @@ function drawFrame() {
 
     if (DEBUG) {
         ctx.fillStyle = "white";
-        ctx.fillText(`Density: ${currentSpoDensity()}, Deviation: ${sposTargetDeviation()}`, 10, 10);
+        ctx.fillText(`Num: ${spos.length}, Density: ${currentSpoDensity()}, Deviation: ${sposTargetDeviation()}`, 10, 10);
     }
 }
 
 //Add a new spo if we're below target
 function checkAddSpo() {
+    if (spos.length > spoLimit) {
+        removeRandomSpo();
+        return;
+    }
+
     const deviation = sposTargetDeviation();
 
-    if (deviation > 0) {
+    if (deviation > 0 && spos.length < spoLimit) {
         addNewSpo();
     } else if (deviation < 0) {
         removeRandomSpo();
@@ -145,13 +156,9 @@ function sprinkleSpos() {
 
     if (deviation <= 0) return;
 
-    for (let i = 0; i < deviation; i++) {
+    for (let i = 0; i < Math.min(deviation, spoLimit-1); i++) {
         addNewSpo();
     }
-}
-
-function createAnimations() {
-    
 }
 
 function main() {
@@ -170,10 +177,14 @@ function main() {
     //Occasional spo addition interval
     setInterval(() => {
         checkAddSpo();
-    }, 100);
+    }, 10);
 }
 
 function init() {
+    fitCanvasToWindow();
+    ctx.fillStyle = "white";
+    ctx.fillText("Loading images...", 10, 10);
+
     const promises = [];
 
     for (let i = 0; i < animNames.length; i++) {

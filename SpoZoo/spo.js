@@ -19,7 +19,7 @@ class Spo {
         this.createAnimations();
     }
 
-    setTimer(val = randomFromTo(30, 120)) {
+    setTimer(val = randomFromTo(10, 240)) {
         this.timer = val;
     }
 
@@ -55,6 +55,21 @@ class Spo {
         return moved;
     }
 
+    checkWrapScreen() {
+        if (this.x < -frameSize) {
+            this.x = canvas.width;
+        }
+        if (this.x > canvas.width) {
+            this.x = -frameSize;
+        }
+        if (this.y < -frameSize) {
+            this.y = canvas.height;
+        }
+        if (this.y > canvas.height) {
+            this.y = -frameSize;
+        }
+    }
+
     pickRandomDir() {
         do {
             this.dir = [
@@ -68,10 +83,12 @@ class Spo {
         this.x += this.dir[0] * this.speed;
         this.y += this.dir[1] * this.speed;
         
-        if (this.clipInBounds()) {
-            this.state = "stand";
-            return;
-        }
+        //if (this.clipInBounds()) {
+        //    this.state = "stand";
+        //    return;
+        //}
+
+        this.checkWrapScreen();
 
         if (this.tickTimer()) {
             this.state = "stand";
@@ -82,8 +99,20 @@ class Spo {
 
     handleStand() {
         if (this.tickTimer()) {
-            this.state = "walk";
-            this.pickRandomDir();
+            if (Math.random() < 0.002) {
+                this.state = "spin";
+                this.setTimer(Math.floor(randomFromTo(32, 65)));
+            } else {
+                this.state = "walk";
+                this.pickRandomDir();
+                this.setTimer();
+            }
+        }
+    }
+
+    handleSpin() {
+        if (this.tickTimer()) {
+            this.state = "stand";
             this.setTimer();
         }
     }
@@ -96,10 +125,13 @@ class Spo {
             case "stand":
                 this.handleStand();
                 break;
+            case "spin":
+                this.handleSpin();
+                break;
         }
     }
 
-    getAnimName() {
+    getGenericAnimName() {
         let animName = this.state+"_";
 
         switch(this.dir[1]) {
@@ -125,6 +157,34 @@ class Spo {
         return animName;
     }
 
+    getSpinAnimFrame() {
+        let cycle = this.timer % 16;
+        cycle = Math.floor(cycle/2);
+
+        switch (cycle) {
+            case 0: return "stand_up";
+            case 1: return "stand_upright";
+            case 2: return "stand_right";
+            case 3: return "stand_downright";
+            case 4: return "stand_down";
+            case 5: return "stand_downleft";
+            case 6: return "stand_left";
+            case 7: return "stand_upleft";
+            default: return "stand_up";
+        }
+    }
+
+    getAnimName() {
+        switch(this.state) {
+            case "stand":
+                return this.getGenericAnimName();
+            case "walk":
+                return this.getGenericAnimName();
+            case "spin":
+                return this.getSpinAnimFrame();
+        }
+    }
+
     draw() {
         const anim = this.getAnimName();
         if (this.animations[anim] == null) {
@@ -144,12 +204,12 @@ class Spo {
         this.y = randomFromTo(0, canvas.height-frameSize);
     }
 
-    pickNewStartPosition() {
+    randomStartPosition() {
         if (Math.random() > 0.5) {
-            this.x = -frameSize;
+            this.x = Math.random() > 0.5 ? -frameSize : canvas.width;
             this.y = randomFromTo(-frameSize, canvas.height);
         } else {
-            this.y = -frameSize;
+            this.y = Math.random() > 0.5 ? -frameSize : canvas.height;
             this.x = randomFromTo(-frameSize, canvas.width);
         }
     }
