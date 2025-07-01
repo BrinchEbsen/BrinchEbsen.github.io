@@ -19,6 +19,13 @@ class Spo {
         this.createAnimations();
     }
 
+    get centerX() {
+        return this.x + Math.floor(frameSize/2);
+    }
+    get centerY() {
+        return this.y + Math.floor(frameSize/2);
+    }
+
     setTimer(val = randomFromTo(10, 240)) {
         this.timer = val;
     }
@@ -80,8 +87,19 @@ class Spo {
     }
 
     handleWalk() {
-        this.x += this.dir[0] * this.speed;
-        this.y += this.dir[1] * this.speed;
+        let moveDir = [
+            this.dir[0],
+            this.dir[1]
+        ];
+
+        //If diagonal, multiply by root 2 to make distance consistent
+        if (Math.abs(moveDir[0]) == 1 && Math.abs(moveDir[1]) == 1) {
+            moveDir[0] /= Math.SQRT2;
+            moveDir[1] /= Math.SQRT2;
+        }
+        
+        this.x += moveDir[0] * this.speed;
+        this.y += moveDir[1] * this.speed;
         
         //if (this.clipInBounds()) {
         //    this.state = "stand";
@@ -212,5 +230,14 @@ class Spo {
             this.y = Math.random() > 0.5 ? -frameSize : canvas.height;
             this.x = randomFromTo(-frameSize, canvas.width);
         }
+    }
+
+    scatterFrom(x, y) {
+        if (dist(this.centerX, this.centerY, x, y) > 400) return;
+
+        this.state = "walk";
+        this.setTimer();
+        this.dir = simpleUnitVectorTo(this.centerX, this.centerY, x, y);
+        this.dir = [-this.dir[0], -this.dir[1]]; //invert
     }
 }

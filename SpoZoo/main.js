@@ -52,6 +52,9 @@ document.addEventListener('keypress', (ev) => {
         DEBUG = !DEBUG;
     }
 });
+canvas.addEventListener('click', (ev) => {
+    scatterSpos(ev.pageX, ev.pageY);
+});
 
 function handleMouse() {
     const isHidden = document.body.classList.contains("mouseHidden");
@@ -65,6 +68,12 @@ function handleMouse() {
     } else if (isHidden) {
         document.body.classList.remove("mouseHidden");
     }
+}
+
+function scatterSpos(x, y) {
+    spos.forEach(spo => {
+        spo.scatterFrom(x, y);
+    });
 }
 
 //The ratio of spo pixels compared to non-spo pixels
