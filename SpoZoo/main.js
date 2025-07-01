@@ -1,16 +1,33 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+const frameSize = 128;
+
+const animNames = [
+    {name: "stand_up", rate: 0.25},
+    {name: "stand_upright", rate: 0.25},
+    {name: "stand_right", rate: 0.25},
+    {name: "stand_downright", rate: 0.25},
+    {name: "stand_down", rate: 0.25},
+    {name: "stand_downleft", rate: 0.25},
+    {name: "stand_left", rate: 0.25},
+    {name: "stand_upleft", rate: 0.25},
+    {name: "walk_up", rate: 0.5},
+    {name: "walk_upright", rate: 0.5},
+    {name: "walk_right", rate: 0.5},
+    {name: "walk_downright", rate: 0.5},
+    {name: "walk_down", rate: 0.5},
+    {name: "walk_downleft", rate: 0.5},
+    {name: "walk_left", rate: 0.5},
+    {name: "walk_upleft", rate: 0.5}
+];
+
 //Animation frames
-let frames = [];
+let frames = {};
 
 //Show debug text on the canvas
 let DEBUG = false;
 
-//The speed the spos travel at
-let spoSpeed = 5;
-//The speed the spos animate at
-let spoAnimSpeed = 1;
 //The amount of spo per pixel to aim for
 const spoDensityTarget = 1;
 //the array of spos
@@ -46,7 +63,7 @@ function handleMouse() {
 function currentSpoDensity() {
     if (spos.length == 0) return 0;
 
-    const spoPixels = (frames[0].width * frames[0].height) * spos.length;
+    const spoPixels = (frameSize * frameSize) * spos.length;
     const canvasPixels = canvas.width * canvas.height;
 
     return spoPixels / canvasPixels;
@@ -54,7 +71,7 @@ function currentSpoDensity() {
 
 //The number of spos to add/remove to meet the density target
 function sposTargetDeviation() {
-    const oneSpo = frames[0].width * frames[0].height;
+    const oneSpo = frameSize * frameSize;
     const spoPixels = oneSpo * spos.length;
     const canvasPixels = canvas.width * canvas.height;
 
@@ -69,25 +86,24 @@ function fitCanvasToWindow() {
     canvas.height = window.innerHeight;
 }
 
-//Sort the spos according to their "depth" in the scene
+//Sort the spos according to their y-position in the scene
 function sortSpos() {
-    //Using cross-product to determine difference in depth
     spos.sort((s1, s2) => {
-        //Vector is down-right so always 1, 1
-        const dx = s2.x - s1.x;
-        const dy = s2.y - s1.y;
-        const cross = (dx - dy);
-        
-        if (cross < 0) return -1;
-        if (cross > 0) return 1;
-        return 0;
+        if (s1.y > s2.y) return 1;
+        else return -1;
     });
 }
 
 function addNewSpo() {
-    const addSpo = new Spo(0, 0, frames);
-    addSpo.pickNewStartPosition();
+    const addSpo = new Spo(0, 0);
+    addSpo.randomPosition();
     spos.push(addSpo);
+}
+
+function removeRandomSpo() {
+    const index = Math.floor(randomFromTo(0, spos.length));
+
+    spos.splice(index, 1);
 }
 
 function drawFrame() {
@@ -99,24 +115,11 @@ function drawFrame() {
         const spo = spos[i];
 
         spo.move();
-
-        if (spo.offScreen) {
-            const deviation = sposTargetDeviation();
-
-            if (deviation > 0) {
-                spo.pickNewStartPosition();
-                addNewSpo();
-            } else if (deviation < 0) {
-                spos.splice(i, 1);
-            } else {
-                spo.pickNewStartPosition();
-            }
-        }
     }
 
     sortSpos();
     spos.forEach(spo => {
-        spo.draw(ctx);
+        spo.draw();
     });
 
     if (DEBUG) {
@@ -131,6 +134,8 @@ function checkAddSpo() {
 
     if (deviation > 0) {
         addNewSpo();
+    } else if (deviation < 0) {
+        removeRandomSpo();
     }
 }
 
@@ -141,14 +146,18 @@ function sprinkleSpos() {
     if (deviation <= 0) return;
 
     for (let i = 0; i < deviation; i++) {
-        const x = randomFromTo(-frames[0].width, canvas.width);
-        const y = randomFromTo(-frames[0].height, canvas.height);
-        spos.push(new Spo(x, y, frames));
+        addNewSpo();
     }
+}
+
+function createAnimations() {
+    
 }
 
 function main() {
     fitCanvasToWindow();
+
+    addNewSpo();
 
     sprinkleSpos();
 
@@ -165,11 +174,13 @@ function main() {
 }
 
 function init() {
-    //Wait for frames to load before running code
-    const framesObj = {frames: frames};
-    const promise = preloadFrames(framesObj, "frames/spo_");
-    frames = framesObj.frames;
-    promise.then(() => {
+    const promises = [];
+
+    for (let i = 0; i < animNames.length; i++) {
+        promises.push(preloadFrames(animNames[i].name));
+    }
+    
+    Promise.all(promises).then(() => {
         main();
     });
 }

@@ -38,10 +38,10 @@ class Spo {
     pickNewStartPosition() {
         if (Math.random() > 0.5) {
             this.x = -this.width;
-            this.y = (Math.random() * (canvas.height + this.height)) - this.height;
+            this.y = randomFromTo(-this.height, canvas.height);
         } else {
             this.y = -this.height;
-            this.x = (Math.random() * (canvas.width + this.width)) - this.width;
+            this.x = randomFromTo(-this.width, canvas.width);
         }
     }
 }
