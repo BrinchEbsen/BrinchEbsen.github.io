@@ -28,6 +28,8 @@ const animNames = [
     {name: "walk_upleft", rate: 0.5}
 ];
 
+const goldenChance = 1.0/2000.0;
+
 //Animation frames
 let frames = {};
 

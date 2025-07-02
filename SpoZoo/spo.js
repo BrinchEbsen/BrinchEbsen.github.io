@@ -14,6 +14,7 @@ class Spo {
         this.state = startState;
         this.dir = startDir;
         this.speed = 2;
+        this.golden = false;
 
         this.target = {
             x: 0,
@@ -75,17 +76,33 @@ class Spo {
     }
 
     checkWrapScreen() {
+        let wrapped = false;
+
         if (this.x < -frameSize) {
             this.x = canvas.width;
+            wrapped = true;
         }
         if (this.x > canvas.width) {
             this.x = -frameSize;
+            wrapped = true;
         }
         if (this.y < -frameSize) {
             this.y = canvas.height;
+            wrapped = true;
         }
         if (this.y > canvas.height) {
             this.y = -frameSize;
+            wrapped = true;
+        }
+
+        if (wrapped) {
+            if (this.golden) {
+                this.golden = false;
+            } else {
+                if (Math.random() < goldenChance) {
+                    this.golden = true;
+                }
+            }
         }
     }
 
@@ -341,7 +358,13 @@ class Spo {
             size = 1.4;
         }
 
+        if (this.golden) {
+            ctx.filter = "hue-rotate(150deg) brightness(1.8)";
+        }
+
         this.animations[anim].draw(this.x, this.y, speed, size);
+
+        ctx.filter = "none";
     }
 
     get offScreen() {
