@@ -1,5 +1,14 @@
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", { alpha: false });
+
+const fps = 60.0;
+const frameInterval = 1000.0 / fps;
+let currMS = window.performance.now();
+let lastMS = currMS;
+
+let beforeDrawMS = 0;
+let afterDrawMS = 0;
+let drawMSDiff = 0;
 
 const frameSize = 128;
 const spoBoundsBox = {
@@ -8,6 +17,28 @@ const spoBoundsBox = {
     w: 64,
     h: 64
 };
+
+const fenceTileSize = 64;
+const fenceFrames = {};
+
+const fenceFrameNames = [
+    "fence_",
+    "fence_U",
+    "fence_UR",
+    "fence_URD",
+    "fence_URDL",
+    "fence_URL",
+    "fence_UD",
+    "fence_UDL",
+    "fence_UL",
+    "fence_R",
+    "fence_RD",
+    "fence_RDL",
+    "fence_RL",
+    "fence_D",
+    "fence_DL",
+    "fence_L"
+];
 
 const animNames = [
     {name: "stand_up", rate: 0.25},
@@ -42,6 +73,8 @@ const spoDensityTarget = 1;
 const spoLimit = 1000;
 //the array of spos
 const spos = [];
+
+const fences = [];
 
 //Used to make mouse hidden if left idle for a while
 let mouseIdleTimer = 120;
@@ -210,10 +243,9 @@ function fitCanvasToWindow() {
     canvas.height = window.innerHeight;
 }
 
-//Sort the spos according to their y-position in the scene
-function sortSpos() {
-    spos.sort((s1, s2) => {
-        if (s1.y > s2.y) return 1;
+function sortByY(array) {
+    return array.sort((a, b) => {
+        if (a.y + a.center.y > b.y + b.center.y) return 1;
         else return -1;
     });
 }
@@ -270,24 +302,38 @@ function handleEasterEgg() {
 
 function drawFrame() {
     fitCanvasToWindow();
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     handleEasterEgg();
 
-    spos.forEach(spo => {
-        spo.move();
+    //TODO: Make it only update when a fence is placed/removed
+    fences.forEach(fence => {
+        fence.updateNeighbors();
     });
 
-    sortSpos();
     spos.forEach(spo => {
-        spo.draw();
+        spo.move();
+        fences.forEach(fence => {
+            const status = fence.checkCollide(spo.centerX, spo.centerY);
+            if (status.hit) {
+                spo.centerX = status.x;
+                spo.centerY = status.y;
+            }
+        });
+    });
+
+    let sprites = [];
+    sprites = sprites.concat(spos, fences);
+    sortByY(sprites);
+
+    sprites.forEach(sprite => {
+        sprite.draw();
     });
 
     if (DEBUG) {
         ctx.fillStyle = "white";
         ctx.fillText(`Num: ${spos.length}, Density: ${currentSpoDensity()}, Deviation: ${sposTargetDeviation()}`, 10, 10);
         ctx.fillText(`Waiting for "SPO": ${waitForEasterEgg}`, 10, 30);
+        ctx.fillText(`Draw time (ms) ${drawMSDiff}`, 10, 40);
     }
 }
 
@@ -318,6 +364,22 @@ function sprinkleSpos() {
     }
 }
 
+function drawLoop() {
+    currMS = window.performance.now();
+
+    if (currMS - lastMS > frameInterval) {
+        lastMS = currMS;
+        handleMouse();
+        
+        beforeDrawMS = window.performance.now();
+        drawFrame();
+        afterDrawMS = window.performance.now();
+        drawMSDiff = afterDrawMS - beforeDrawMS;
+    }
+    
+    window.requestAnimationFrame(drawLoop);
+}
+
 function main() {
     fitCanvasToWindow();
 
@@ -325,16 +387,42 @@ function main() {
 
     sprinkleSpos();
 
-    //Main frame interval
-    setInterval(() => {
-        handleMouse();
-        drawFrame();
-    }, 1000/60);
+    //fences.push(new Fence(2, 2));
+    //fences.push(new Fence(3, 2));
+    //fences.push(new Fence(3, 3));
+    //fences.push(new Fence(10, 3));
+    //fences.push(new Fence(2, 5));
+    //fences.push(new Fence(3, 5));
+    //fences.push(new Fence(4, 5));
+    //fences.push(new Fence(2, 6));
+    //fences.push(new Fence(4, 6));
+    //fences.push(new Fence(2, 7));
+    //fences.push(new Fence(3, 7));
+    //fences.push(new Fence(4, 7));
 
+    //Main frame interval
+    drawLoop();
+    
     //Occasional spo addition interval
     setInterval(() => {
         checkAddSpo();
     }, 10);
+}
+
+function preloadFenceFrames() {
+    const promises = [];
+
+    for(let i = 0; i < fenceFrameNames.length; i++) {
+        let frame = new Image();
+        frame.src = `frames/fence/${fenceFrameNames[i]}.png`;
+        fenceFrames[fenceFrameNames[i]] = frame;
+
+        promises.push(new Promise(resolve => {
+            frame.onload = resolve;
+        }));
+    }
+
+    return Promise.all(promises);
 }
 
 function init() {
@@ -342,12 +430,13 @@ function init() {
     ctx.fillStyle = "white";
     ctx.fillText("Loading images...", 10, 10);
 
-    const promises = [];
+    let promises = [];
 
     for (let i = 0; i < animNames.length; i++) {
         promises.push(preloadFrames(animNames[i].name));
     }
-    
+    promises = promises.concat(preloadFenceFrames());
+
     Promise.all(promises).then(() => {
         main();
     });

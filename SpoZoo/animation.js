@@ -24,6 +24,11 @@ class Animation {
             iy -= (ih-img.height)/2;
         }
 
-        ctx.drawImage(img, ix, iy, iw, ih);
+        ix = Math.floor(ix);
+        iy = Math.floor(iy);
+        iw = Math.floor(iw);
+        ih = Math.floor(ih);
+
+        ctx.drawImage(img, Math.floor(ix), Math.floor(iy), iw, ih);
     }
 }

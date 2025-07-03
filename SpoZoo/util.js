@@ -48,3 +48,20 @@ function simpleUnitVectorTo(x1, y1, x2, y2) {
     }
     return [0, 1];
 }
+
+function closestCardinalDirection(x1, y1, x2, y2) {
+    const vx = x2 - x1;
+    const vy = y2 - y1;
+    const ang = Math.atan2(vx, vy);
+    const angAbs = Math.abs(ang);
+    const angNeg = ang < 0;
+    const piDiv4 = Math.PI/4;
+
+    if (angAbs > piDiv4 * 3) {
+        return [0, -1];
+    }
+    if (angAbs > piDiv4 * 1) {
+        return angNeg ? [-1, 0] : [1, 0];
+    }
+    return [0, 1];
+}

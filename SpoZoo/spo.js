@@ -16,6 +16,8 @@ class Spo {
         this.speed = 2;
         this.golden = false;
 
+        this.center = {x: 64, y: 80};
+
         this.target = {
             x: 0,
             y: 0,
@@ -204,6 +206,10 @@ class Spo {
     }
 
     handleSpin() {
+        if ((this.timer % 2) == 0) {
+            this.turn(true);
+        }
+
         if (this.tickTimer()) {
             this.state = "stand";
             this.setTimer();
@@ -306,23 +312,6 @@ class Spo {
         return this.state+"_"+this.getDirectionName();
     }
 
-    getSpinAnimName() {
-        let cycle = this.timer % 16;
-        cycle = Math.floor(cycle/2);
-
-        switch (cycle) {
-            case 0: return "stand_up";
-            case 1: return "stand_upright";
-            case 2: return "stand_right";
-            case 3: return "stand_downright";
-            case 4: return "stand_down";
-            case 5: return "stand_downleft";
-            case 6: return "stand_left";
-            case 7: return "stand_upleft";
-            default: return "stand_up";
-        }
-    }
-
     getAnimName() {
         switch(this.state) {
             case "stand":
@@ -330,7 +319,7 @@ class Spo {
             case "walk":
                 return this.getGenericAnimName();
             case "spin":
-                return this.getSpinAnimName();
+                return "stand_"+this.getDirectionName();
             case "grabbed":
                 return "walk_"+this.getDirectionName();
             case "flee":
@@ -364,7 +353,14 @@ class Spo {
 
         this.animations[anim].draw(this.x, this.y, speed, size);
 
-        ctx.filter = "none";
+        if (this.golden) {
+            ctx.filter = "none";
+        }
+
+        //if (DEBUG) {
+        //    ctx.fillStyle = "white";
+        //    ctx.fillText(`cX: ${this.centerX}, cY: ${this.centerY}`, this.x, this.y);
+        //}
     }
 
     get offScreen() {
