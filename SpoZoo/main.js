@@ -1,5 +1,6 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d", { alpha: false });
+canvas.style.background = "green";
 
 const fps = 60.0;
 const frameInterval = 1000.0 / fps;
@@ -17,6 +18,17 @@ const spoBoundsBox = {
     w: 64,
     h: 64
 };
+
+const CLICKMODE_SPO = 0;
+const CLICKMODE_FENCE = 1;
+
+let clickMode = CLICKMODE_SPO;
+
+const FENCECLICKSTATE_NONE = 0;
+const FENCECLICKSTATE_PLACE = 1;
+const FENCECLICKSTATE_REMOVE = 2;
+
+let fenceClickState = FENCECLICKSTATE_NONE;
 
 const fenceTileSize = 64;
 const fenceFrames = {};
@@ -40,23 +52,29 @@ const fenceFrameNames = [
     "fence_L"
 ];
 
+const fenceTileFlashingTimerMax = 0x60;
+const fenceTileFlashingTimerMin = 0x10;
+const fenceTileFlashingTimerStep = 6;
+let fenceTileFlashingTimer = fenceTileFlashingTimerMin;
+let fenceTileFlashingTimerRising = true;
+
 const animNames = [
-    {name: "stand_up", rate: 0.25},
-    {name: "stand_upright", rate: 0.25},
-    {name: "stand_right", rate: 0.25},
+    {name: "stand_up",        rate: 0.25},
+    {name: "stand_upright",   rate: 0.25},
+    {name: "stand_right",     rate: 0.25},
     {name: "stand_downright", rate: 0.25},
-    {name: "stand_down", rate: 0.25},
-    {name: "stand_downleft", rate: 0.25},
-    {name: "stand_left", rate: 0.25},
-    {name: "stand_upleft", rate: 0.25},
-    {name: "walk_up", rate: 0.5},
-    {name: "walk_upright", rate: 0.5},
-    {name: "walk_right", rate: 0.5},
-    {name: "walk_downright", rate: 0.5},
-    {name: "walk_down", rate: 0.5},
-    {name: "walk_downleft", rate: 0.5},
-    {name: "walk_left", rate: 0.5},
-    {name: "walk_upleft", rate: 0.5}
+    {name: "stand_down",      rate: 0.25},
+    {name: "stand_downleft",  rate: 0.25},
+    {name: "stand_left",      rate: 0.25},
+    {name: "stand_upleft",    rate: 0.25},
+    {name: "walk_up",         rate: 0.5},
+    {name: "walk_upright",    rate: 0.5},
+    {name: "walk_right",      rate: 0.5},
+    {name: "walk_downright",  rate: 0.5},
+    {name: "walk_down",       rate: 0.5},
+    {name: "walk_downleft",   rate: 0.5},
+    {name: "walk_left",       rate: 0.5},
+    {name: "walk_upleft",     rate: 0.5}
 ];
 
 const goldenChance = 1.0/2000.0;
@@ -79,7 +97,15 @@ const fences = [];
 //Used to make mouse hidden if left idle for a while
 let mouseIdleTimer = 120;
 
+let mouseX = 0;
+let mouseY = 0;
+
 document.addEventListener('mousemove', (ev) => {
+    mouseX = ev.pageX;
+    mouseY = ev.pageY;
+
+    handleMouseMoveFence(ev);
+
     mouseIdleTimer = 120;
     makeSposCurious(ev.pageX, ev.pageY);
     spos.forEach(spo => {
@@ -92,19 +118,18 @@ canvas.addEventListener('mouseleave', () => {
     });
 });
 canvas.addEventListener('mousedown', (ev) => {
-    //Interrupt easter egg on mouse click because it scatters the spos
-    waitForEasterEgg = false;
-    
-    let oneIsGrabbed = false;
-    spos.forEach(spo => {
-        if (!oneIsGrabbed) {
-            spo.mouseDown(ev.pageX, ev.pageY);
-            if (spo.state == "grabbed") oneIsGrabbed = true;
-        }
-        spo.scatterFrom(ev.pageX, ev.pageY);
-    });
+    switch (clickMode) {
+        case CLICKMODE_SPO:
+            handleMouseDownSpos(ev);
+            return;
+        case CLICKMODE_FENCE:
+            handleMouseDownFence(ev);
+            return;
+    }
 });
 canvas.addEventListener('mouseup', () => {
+    fenceClickState = FENCECLICKSTATE_NONE;
+
     spos.forEach(spo => {
         spo.mouseUp();
     });
@@ -114,6 +139,14 @@ document.addEventListener('keypress', (ev) => {
 
     if (ev.code == "KeyD") {
         DEBUG = !DEBUG;
+    }
+
+    if (ev.code == "KeyF") {
+        if (clickMode == CLICKMODE_SPO) {
+            clickMode = CLICKMODE_FENCE;
+        } else{
+            clickMode = CLICKMODE_SPO;
+        }
     }
 });
 
@@ -163,6 +196,66 @@ const spoEasterEgg = [
 ];
 
 let waitForEasterEgg = false;
+
+function handleMouseDownSpos(ev) {
+    //Interrupt easter egg on mouse click because it scatters the spos
+    waitForEasterEgg = false;
+    
+    let oneIsGrabbed = false;
+    spos.forEach(spo => {
+        if (!oneIsGrabbed) {
+            spo.mouseDown(ev.pageX, ev.pageY);
+            if (spo.state == "grabbed") oneIsGrabbed = true;
+        }
+        spo.scatterFrom(ev.pageX, ev.pageY);
+    });
+}
+
+function handleMouseDownFence(ev) {
+    if (ev.pageX < 0 || ev.pageX > canvas.width) return;
+    if (ev.pageY < 0 || ev.pageY > canvas.height) return;
+
+    const tileX = Math.floor(ev.pageX / fenceTileSize);
+    const tileY = Math.floor(ev.pageY / fenceTileSize);
+
+    const fenceIndex = checkFenceAtTile(tileX, tileY);
+
+    if (fenceClickState == FENCECLICKSTATE_NONE) {
+        if (fenceIndex >= 0) {
+            fenceClickState = FENCECLICKSTATE_REMOVE;
+        } else {
+            fenceClickState = FENCECLICKSTATE_PLACE;
+        }
+    }
+
+    doFencePlacement(ev);
+}
+
+function handleMouseMoveFence(ev) {
+    doFencePlacement(ev);
+}
+
+function doFencePlacement(ev) {
+    if (ev.pageX < 0 || ev.pageX > canvas.width) return;
+    if (ev.pageY < 0 || ev.pageY > canvas.height) return;
+
+    const tileX = Math.floor(ev.pageX / fenceTileSize);
+    const tileY = Math.floor(ev.pageY / fenceTileSize);
+
+    const fenceIndex = checkFenceAtTile(tileX, tileY);
+
+    if (fenceClickState == FENCECLICKSTATE_PLACE) {
+        if (fenceIndex < 0) {
+            fences.push(new Fence(tileX, tileY));
+        }
+    } else if (fenceClickState == FENCECLICKSTATE_REMOVE) {
+        if (fenceIndex >= 0) {
+            fences.splice(fenceIndex, 1);
+        }
+    }
+
+    updateAllFenceNeighbors();
+}
 
 function handleMouse() {
     const isHidden = document.body.classList.contains("mouseHidden");
@@ -214,6 +307,22 @@ function formSpoWord() {
         spo.walkTo(spoEasterEgg[eeIndex][0], spoEasterEgg[eeIndex][1], [0, 1]);
         eeIndex++;
     }
+}
+
+function checkFenceAtTile(x, y) {
+    for (let i = 0; i < fences.length; i++) {
+        if (fences[i].tileX == x && fences[i].tileY == y) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+function updateAllFenceNeighbors() {
+    fences.forEach(fence => {
+        fence.updateNeighbors();
+    });
 }
 
 //The ratio of spo pixels compared to non-spo pixels
@@ -300,15 +409,41 @@ function handleEasterEgg() {
     }
 }
 
+function drawFenceTileAtMouse() {
+    if (mouseX < 0 || mouseX > canvas.width) return;
+    if (mouseY < 0 || mouseY > canvas.height) return;
+
+    let tileX = Math.floor(mouseX / fenceTileSize);
+    let tileY = Math.floor(mouseY / fenceTileSize);
+
+    if (fenceTileFlashingTimerRising) {
+        fenceTileFlashingTimer += fenceTileFlashingTimerStep;
+        if (fenceTileFlashingTimer > fenceTileFlashingTimerMax) {
+            fenceTileFlashingTimer = fenceTileFlashingTimerMax;
+            fenceTileFlashingTimerRising = false;
+        }
+    } else {
+        fenceTileFlashingTimer -= fenceTileFlashingTimerStep;
+        if (fenceTileFlashingTimer < fenceTileFlashingTimerMin) {
+            fenceTileFlashingTimer = fenceTileFlashingTimerMin;
+            fenceTileFlashingTimerRising = true;
+        }
+    }
+
+    const timerHex = fenceTileFlashingTimer.toString(16).padStart(2, "0");
+    ctx.fillStyle = "#"+timerHex+timerHex+timerHex;
+
+    ctx.fillRect(tileX * fenceTileSize, tileY * fenceTileSize, fenceTileSize, fenceTileSize);
+}
+
 function drawFrame() {
     fitCanvasToWindow();
 
-    handleEasterEgg();
+    if (clickMode == CLICKMODE_FENCE) {
+        drawFenceTileAtMouse();
+    }
 
-    //TODO: Make it only update when a fence is placed/removed
-    fences.forEach(fence => {
-        fence.updateNeighbors();
-    });
+    handleEasterEgg();
 
     spos.forEach(spo => {
         spo.move();
@@ -317,6 +452,9 @@ function drawFrame() {
             if (status.hit) {
                 spo.centerX = status.x;
                 spo.centerY = status.y;
+                if (spo.inStateThatMoves && !spo.checkMoved()) {
+                    spo.stopWalking();
+                }
             }
         });
     });
@@ -367,8 +505,10 @@ function sprinkleSpos() {
 function drawLoop() {
     currMS = window.performance.now();
 
+    //When the interval between frames for our framerate has passed, draw a frame
     if (currMS - lastMS > frameInterval) {
         lastMS = currMS;
+        
         handleMouse();
         
         beforeDrawMS = window.performance.now();
@@ -377,13 +517,12 @@ function drawLoop() {
         drawMSDiff = afterDrawMS - beforeDrawMS;
     }
     
+    //Call self when new animation frame fires
     window.requestAnimationFrame(drawLoop);
 }
 
 function main() {
     fitCanvasToWindow();
-
-    addNewSpo();
 
     sprinkleSpos();
 

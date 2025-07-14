@@ -65,10 +65,10 @@ class Fence {
         const origRelX = relX;
         const origRelY = relY;
 
-        const leftOfBase = relX < 16;
-        const rightOfBase = relX > 48;
-        const aboveBase = relY < 32;
-        const belowBase = relY > 64;
+        const leftOfBase = relX <= 16;
+        const rightOfBase = relX >= 48;
+        const aboveBase = relY <= 32;
+        const belowBase = relY >= 64;
         
         const insideBase = !leftOfBase && !rightOfBase && !aboveBase && !belowBase;
 

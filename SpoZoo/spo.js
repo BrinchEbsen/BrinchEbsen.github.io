@@ -11,6 +11,8 @@ class Spo {
     constructor(x, y, startState = "stand", startDir = [0, 1]) {
         this.x = x;
         this.y = y;
+        this.lastX = x;
+        this.lastY = y;
         this.state = startState;
         this.dir = startDir;
         this.speed = 2;
@@ -39,6 +41,10 @@ class Spo {
     }
     set centerY(val) {
         this.y = val - frameSize/2;
+    }
+
+    get inStateThatMoves() {
+        return this.state == "walk" || this.state == "flee";
     }
 
     setTimer(val = randomFromTo(10, 240)) {
@@ -165,6 +171,9 @@ class Spo {
     }
 
     takeStep(distMult = 1) {
+        this.lastX = this.x;
+        this.lastY = this.y;
+
         let moveDir = [
             this.dir[0],
             this.dir[1]
@@ -178,6 +187,10 @@ class Spo {
         
         this.x += moveDir[0] * this.speed * distMult;
         this.y += moveDir[1] * this.speed * distMult;
+    }
+
+    checkMoved() {
+        return (this.lastX != this.x || this.lastY != this.y);
     }
 
     handleWalk() {
@@ -397,6 +410,11 @@ class Spo {
     makeSpin(duration) {
         this.state = "spin";
         this.setTimer(duration);
+    }
+
+    stopWalking() {
+        this.state = "stand";
+        this.setTimer();
     }
 
     lookAtIfStanding(x, y) {
