@@ -289,7 +289,13 @@ function handleEasterEggInput(keyCode) {
 
     if (easterEggProgress >= easterEggKeys.length) {
         easterEggProgress = 0;
-        formSpoWord();
+
+        spos.forEach(spo => {
+            if (spo.state != "grabbed") {
+                spo.makeSpin(240);
+            }
+        });
+        //formSpoWord();
     }
 }
 
@@ -371,6 +377,8 @@ function removeRandomSpo() {
     //Ignore spos that are grabbed (better UX)
     if (spos[index].state == "grabbed") return;
 
+    if (spos[index].golden) return;
+
     spos.splice(index, 1);
 }
 
@@ -436,6 +444,19 @@ function drawFenceTileAtMouse() {
     ctx.fillRect(tileX * fenceTileSize, tileY * fenceTileSize, fenceTileSize, fenceTileSize);
 }
 
+function testSpoFenceCollision(spo) {
+    fences.forEach(fence => {
+        const status = fence.checkCollide(spo.centerX, spo.centerY);
+        if (status.hit) {
+            spo.centerX = status.x;
+            spo.centerY = status.y;
+            if (spo.inStateThatMoves && !spo.checkMoved()) {
+                spo.stopWalking();
+            }
+        }
+    });
+}
+
 function drawFrame() {
     fitCanvasToWindow();
 
@@ -443,20 +464,14 @@ function drawFrame() {
         drawFenceTileAtMouse();
     }
 
-    handleEasterEgg();
+    //handleEasterEgg();
 
     spos.forEach(spo => {
         spo.move();
-        fences.forEach(fence => {
-            const status = fence.checkCollide(spo.centerX, spo.centerY);
-            if (status.hit) {
-                spo.centerX = status.x;
-                spo.centerY = status.y;
-                if (spo.inStateThatMoves && !spo.checkMoved()) {
-                    spo.stopWalking();
-                }
-            }
-        });
+
+        if (spo.state != "grabbed") {
+            testSpoFenceCollision(spo);
+        }
     });
 
     let sprites = [];
