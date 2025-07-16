@@ -541,19 +541,6 @@ function main() {
 
     sprinkleSpos();
 
-    //fences.push(new Fence(2, 2));
-    //fences.push(new Fence(3, 2));
-    //fences.push(new Fence(3, 3));
-    //fences.push(new Fence(10, 3));
-    //fences.push(new Fence(2, 5));
-    //fences.push(new Fence(3, 5));
-    //fences.push(new Fence(4, 5));
-    //fences.push(new Fence(2, 6));
-    //fences.push(new Fence(4, 6));
-    //fences.push(new Fence(2, 7));
-    //fences.push(new Fence(3, 7));
-    //fences.push(new Fence(4, 7));
-
     //Main frame interval
     drawLoop();
     
@@ -588,6 +575,7 @@ function init() {
 
     for (let i = 0; i < animNames.length; i++) {
         promises.push(preloadFrames(animNames[i].name));
+        promises.push(preloadFrames("gold_"+animNames[i].name));
     }
     promises = promises.concat(preloadFenceFrames());
 

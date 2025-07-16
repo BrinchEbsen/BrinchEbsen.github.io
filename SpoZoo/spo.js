@@ -5,6 +5,8 @@ class Spo {
         for(let i = 0; i < animNames.length; i++) {
             this.animations[animNames[i].name] =
                 new Animation(animNames[i].name, animNames[i].rate);
+            this.animations["gold_"+animNames[i].name] =
+                new Animation("gold_"+animNames[i].name, animNames[i].rate);
         }
     }
 
@@ -44,7 +46,9 @@ class Spo {
     }
 
     get inStateThatMoves() {
-        return this.state == "walk" || this.state == "flee";
+        return this.state == "walk"
+            || this.state == "flee"
+            || this.state == "walktopoint";
     }
 
     setTimer(val = randomFromTo(10, 240)) {
@@ -179,7 +183,7 @@ class Spo {
             this.dir[1]
         ];
 
-        //If diagonal, multiply by root 2 to make distance consistent
+        //If diagonal, divide by root 2 to make distance consistent
         if (Math.abs(moveDir[0]) == 1 && Math.abs(moveDir[1]) == 1) {
             moveDir[0] /= Math.SQRT2;
             moveDir[1] /= Math.SQRT2;
@@ -326,22 +330,33 @@ class Spo {
     }
 
     getAnimName() {
+        let name = this.golden ? "gold_" : "";
+
         switch(this.state) {
             case "stand":
-                return this.getGenericAnimName();
+                name += this.getGenericAnimName();
+                break;
             case "walk":
-                return this.getGenericAnimName();
+                name += this.getGenericAnimName();
+                break;
             case "spin":
-                return "stand_"+this.getDirectionName();
+                name += "stand_"+this.getDirectionName();
+                break;
             case "grabbed":
-                return "walk_"+this.getDirectionName();
+                name += "walk_"+this.getDirectionName();
+                break;
             case "flee":
-                return "walk_"+this.getDirectionName();
+                name += "walk_"+this.getDirectionName();
+                break;
             case "walktopoint":
-                return "walk_"+this.getDirectionName();
+                name += "walk_"+this.getDirectionName();
+                break;
             case "standstill":
-                return "stand_"+this.getDirectionName();
+                name += "stand_"+this.getDirectionName();
+                break;
         }
+
+        return name;
     }
 
     draw() {
@@ -360,15 +375,15 @@ class Spo {
             size = 1.4;
         }
 
-        if (this.golden) {
-            ctx.filter = "hue-rotate(150deg) brightness(1.8)";
-        }
+        //if (this.golden) {
+        //    ctx.filter = "hue-rotate(150deg) brightness(1.8)";
+        //}
 
         this.animations[anim].draw(this.x, this.y, speed, size);
 
-        if (this.golden) {
-            ctx.filter = "none";
-        }
+        //if (this.golden) {
+        //    ctx.filter = "none";
+        //}
 
         //if (DEBUG) {
         //    ctx.fillStyle = "white";
