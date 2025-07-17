@@ -4,9 +4,9 @@ class Spo {
 
         for(let i = 0; i < animNames.length; i++) {
             this.animations[animNames[i].name] =
-                new Animation(animNames[i].name, animNames[i].rate);
+                new Animation(frames[animNames[i].name], animNames[i].rate);
             this.animations["gold_"+animNames[i].name] =
-                new Animation("gold_"+animNames[i].name, animNames[i].rate);
+                new Animation(frames["gold_"+animNames[i].name], animNames[i].rate);
         }
     }
 
@@ -375,15 +375,21 @@ class Spo {
             size = 1.4;
         }
 
-        //if (this.golden) {
-        //    ctx.filter = "hue-rotate(150deg) brightness(1.8)";
-        //}
-
         this.animations[anim].draw(this.x, this.y, speed, size);
 
-        //if (this.golden) {
-        //    ctx.filter = "none";
-        //}
+        if (this.golden) {
+            if (Math.random() < 0.03) {
+                const x = randomFromTo(
+                    this.x + spoBoundsBox.x + 10,
+                    this.x + spoBoundsBox.x + spoBoundsBox.w - 10
+                );
+                const y = randomFromTo(
+                    this.y + spoBoundsBox.y + 10,
+                    this.y + spoBoundsBox.y + spoBoundsBox.h - 10
+                );
+                spawnSparkle(x, y);
+            }
+        }
 
         //if (DEBUG) {
         //    ctx.fillStyle = "white";

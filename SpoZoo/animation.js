@@ -1,16 +1,46 @@
 class Animation {
-    constructor(name, rate) {
-        this.name = name;
+    constructor(frames, rate, loop = true) {
+        this.frames = frames;
         this.rate = rate;
+        this.loop = loop;
+        this.stopped = false;
 
         this.timeLine = 0;
     }
 
+    get width() {
+        if (this.frames.length > 0) {
+            return this.frames[0].width;
+        } else {
+            return 0;
+        }
+    }
+
+    get height() {
+        if (this.frames.length > 0) {
+            return this.frames[0].height;
+        } else {
+            return 0;
+        }
+    }
+
     draw(x, y, rateMult = 1, sizeMult = 1) {
+        if (this.stopped) return;
+
         this.timeLine += this.rate*rateMult;
-        this.timeLine %= frames[this.name].length;
+
+        if (!this.loop) {
+            if (this.timeLine >= this.frames.length) {
+                this.stopped = true;
+                return;
+            }
+        }
+
+        this.timeLine %= this.frames.length;
+
+
         const frame = Math.floor(this.timeLine);
-        const img = frames[this.name][frame];
+        const img = this.frames[frame];
 
         let ix = x;
         let iy = y;
@@ -29,6 +59,6 @@ class Animation {
         iw = Math.floor(iw);
         ih = Math.floor(ih);
 
-        ctx.drawImage(img, Math.floor(ix), Math.floor(iy), iw, ih);
+        ctx.drawImage(img, ix, iy, iw, ih);
     }
 }

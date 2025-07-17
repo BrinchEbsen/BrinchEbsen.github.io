@@ -94,6 +94,10 @@ const spos = [];
 
 const fences = [];
 
+let sparkles = [];
+const numSparkleFrames = 7;
+const sparkleFrames = [];
+
 //Used to make mouse hidden if left idle for a while
 let mouseIdleTimer = 120;
 
@@ -365,6 +369,14 @@ function sortByY(array) {
     });
 }
 
+function spawnSparkle(x, y) {
+    sparkles.push(new Sparkle(x, y));
+}
+
+function purgeSparkles() {
+    sparkles = sparkles.filter((s) => { return !s.requestStop });
+}
+
 function addNewSpo() {
     const addSpo = new Spo(0, 0);
     addSpo.randomStartPosition();
@@ -474,9 +486,15 @@ function drawFrame() {
         }
     });
 
+    purgeSparkles();
+
     let sprites = [];
     sprites = sprites.concat(spos, fences);
     sortByY(sprites);
+    if (sparkles.length > 0) {
+        //Sparkles added after sorting, always on top
+        sprites = sprites.concat(sparkles);
+    }
 
     sprites.forEach(sprite => {
         sprite.draw();
@@ -566,6 +584,22 @@ function preloadFenceFrames() {
     return Promise.all(promises);
 }
 
+function preloadSparkleFrames() {
+    const promises = [];
+
+    for(let i = 0; i < numSparkleFrames; i++) {
+        let frame = new Image();
+        frame.src = `frames/sparkle/${i}.png`;
+        sparkleFrames.push(frame);
+
+        promises.push(new Promise(resolve => {
+            frame.onload = resolve;
+        }));
+    }
+
+    return Promise.all(promises);
+}
+
 function init() {
     fitCanvasToWindow();
     ctx.fillStyle = "white";
@@ -577,7 +611,10 @@ function init() {
         promises.push(preloadFrames(animNames[i].name));
         promises.push(preloadFrames("gold_"+animNames[i].name));
     }
-    promises = promises.concat(preloadFenceFrames());
+    promises = promises.concat(
+        preloadFenceFrames(),
+        preloadSparkleFrames()
+    );
 
     Promise.all(promises).then(() => {
         main();
