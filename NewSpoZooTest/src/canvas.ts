@@ -9,3 +9,13 @@ function updateCanvasMousePos(ev : MouseEvent) : void {
     CanvasMousePos.x = ev.pageX - rect.left;
     CanvasMousePos.y = ev.pageY - rect.top;
 }
+
+function setEnableScroll(enable : boolean) : void {
+    const scrollDisabled = document.body.classList.contains("disableScroll");
+
+    if (!enable && !scrollDisabled) {
+        document.body.classList.add("disableScroll");
+    } else if (enable && scrollDisabled) {
+        document.body.classList.remove("disableScroll");
+    }
+}

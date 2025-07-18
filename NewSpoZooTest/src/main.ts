@@ -11,7 +11,7 @@ function main() : void {
     setupEvents();
 
     game = new SpoZoo();
-    game.scene.spos.push(new Spo({x: 10, y: 10}));
+    game.scene.spos.push(new Spo({x: 500, y: 500}));
     game.startDrawLoop(CANVAS, CTX);
 }
 

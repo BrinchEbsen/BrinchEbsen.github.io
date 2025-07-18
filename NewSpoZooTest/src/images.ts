@@ -1,3 +1,5 @@
+const AssetsFolder = "assets";
+
 type SpoAnimInfo = {
     name : string,
     rate : number,
@@ -39,7 +41,7 @@ function preloadSpoAnimFrames() : Promise<any> {
 
             for (let i = 0; i < info.numFrames; i++) {
                 const img : HTMLImageElement = new Image();
-                const imgPath = `../assets/spo/${t}/${info.name}/${i}.png`;
+                const imgPath = `${AssetsFolder}/spo/${t}/${info.name}/${i}.png`;
                 img.src = imgPath;
 
                 frames.push(img);
@@ -81,7 +83,7 @@ function preloadFenceFrames() : Promise<any> {
 
     FenceFrameNames.forEach(name => {
         const img : HTMLImageElement = new Image();
-        const imgPath = `../assets/fence/${name}.png`;
+        const imgPath = `${AssetsFolder}/fence/${name}.png`;
         img.src = imgPath;
 
         FenceFrames.set(name, img);
@@ -102,7 +104,7 @@ function preloadSparkleFrames() : Promise<any> {
 
     for (let i = 0; i < NumSparkleFrames; i++) {
         const img : HTMLImageElement = new Image();
-        const imgPath = `../assets/sparkle/${i}.png`;
+        const imgPath = `${AssetsFolder}/sparkle/${i}.png`;
         img.src = imgPath;
 
         SparkleFrames.push(img);

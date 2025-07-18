@@ -1,4 +1,5 @@
 "use strict";
+const AssetsFolder = "assets";
 const SpoTypes = [
     "regular",
     "gold"
@@ -29,7 +30,7 @@ function preloadSpoAnimFrames() {
             const frames = [];
             for (let i = 0; i < info.numFrames; i++) {
                 const img = new Image();
-                const imgPath = `../assets/spo/${t}/${info.name}/${i}.png`;
+                const imgPath = `${AssetsFolder}/spo/${t}/${info.name}/${i}.png`;
                 img.src = imgPath;
                 frames.push(img);
                 promises.push(new Promise(resolve => {
@@ -64,7 +65,7 @@ function preloadFenceFrames() {
     const promises = [];
     FenceFrameNames.forEach(name => {
         const img = new Image();
-        const imgPath = `../assets/fence/${name}.png`;
+        const imgPath = `${AssetsFolder}/fence/${name}.png`;
         img.src = imgPath;
         FenceFrames.set(name, img);
         promises.push(new Promise(resolve => {
@@ -79,7 +80,7 @@ function preloadSparkleFrames() {
     const promises = [];
     for (let i = 0; i < NumSparkleFrames; i++) {
         const img = new Image();
-        const imgPath = `../assets/sparkle/${i}.png`;
+        const imgPath = `${AssetsFolder}/sparkle/${i}.png`;
         img.src = imgPath;
         SparkleFrames.push(img);
         promises.push(new Promise(resolve => {

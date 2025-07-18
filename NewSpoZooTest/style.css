@@ -1,8 +1,11 @@
 body {
     margin: 0;
-    background-color: black;
-    overflow: hidden; /*  Disable scrollbars */
+    background-color: rgb(62, 62, 62);
     display: block; /* No floating content on sides */
+}
+
+.disableScroll {
+    overflow: hidden; /*  Disable scrollbars */
 }
 
 .mouseHidden {

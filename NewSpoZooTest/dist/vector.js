@@ -8,6 +8,10 @@ function vecFromTo(vec1, vec2) {
 function vecLength(vec) {
     return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
 }
+function vecDist(vec1, vec2) {
+    const fromTo = vecFromTo(vec1, vec2);
+    return vecLength(fromTo);
+}
 function vecNormalize(vec) {
     const len = vecLength(vec);
     if (len == 0)

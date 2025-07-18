@@ -11,6 +11,11 @@ function vecLength(vec : Vec) : number {
     return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
 }
 
+function vecDist(vec1 : Vec, vec2 : Vec) : number {
+    const fromTo = vecFromTo(vec1, vec2);
+    return vecLength(fromTo);
+}
+
 function vecNormalize(vec : Vec) : Vec {
     const len = vecLength(vec);
     if (len == 0) return vec;

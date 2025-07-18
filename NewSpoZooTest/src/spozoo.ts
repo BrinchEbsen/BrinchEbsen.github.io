@@ -1,4 +1,8 @@
 type SpoZooScene = {
+    width : number,
+    height : number,
+    minWidth : number,
+    minHeight : number,
     spos : Spo[]
 };
 
@@ -12,11 +16,19 @@ class SpoZoo {
 
     public scene : SpoZooScene;
 
-    constructor(fps : number = 60) {
+    constructor(
+            width : number = window.innerWidth,
+            height : number = window.innerHeight,
+            fps : number = 60
+        ) {
         this.inDrawLoop = false;
         this.setFps(fps);
 
         this.scene = {
+            width: width,
+            height: height,
+            minWidth: 100,
+            minHeight: 100,
             spos: []
         };
     }
@@ -44,8 +56,17 @@ class SpoZoo {
     }
 
     private fitCanvas(canvas : HTMLCanvasElement) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        this.scene.width  = Math.max(window.innerWidth,  this.scene.minWidth);
+        this.scene.height = Math.max(window.innerHeight, this.scene.minHeight);
+        
+        if ((this.scene.width  > window.innerWidth) ||
+            (this.scene.height > window.innerHeight))
+            setEnableScroll(true);
+        else
+            setEnableScroll(false);
+
+        canvas.width = this.scene.width;
+        canvas.height = this.scene.height;
     }
 
     private drawLoop(canvas : HTMLCanvasElement, ctx : CanvasRenderingContext2D) {
@@ -71,6 +92,9 @@ class SpoZoo {
     }
 
     private drawFrame(ctx : CanvasRenderingContext2D) {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, this.scene.width, this.scene.height);
+
         const sprites : Sprite[] = this.scene.spos;
 
         sprites.sort((a : Sprite, b : Sprite) => {
@@ -83,5 +107,3 @@ class SpoZoo {
         });
     }
 }
-
-const gSpoZoo = new SpoZoo();
