@@ -21,19 +21,12 @@ class SpoZoo {
             })
         };
         this.spoDensityTarget = 0.5;
-        this.fenceBuildState = {
+        this.tileBuildState = {
             build: false,
             remove: false,
-            mousePos: { x: 0, y: 0 },
             tileFlasher: new Flasher(0x10, 0x60, 6)
         };
-        //TEST
-        this.scene.fences.push(new Fence({ x: 6, y: 4 }));
-        this.scene.fences.push(new Fence({ x: 7, y: 4 }));
-        this.scene.fences.push(new Fence({ x: 7, y: 5 }));
-        this.scene.fences.forEach(f => {
-            f.updateNeighbors(this.scene);
-        });
+        this.mousePos = { x: 0, y: 0 };
     }
     spoTargetDeviation() {
         const oneSpo = SpoBoundBoxSize * SpoBoundBoxSize;
@@ -107,10 +100,10 @@ class SpoZoo {
     setFenceAtTile(pos, fenceIndex = undefined) {
         if (!fenceIndex)
             fenceIndex = this.fenceAtTile(pos);
-        if (this.fenceBuildState.build && fenceIndex < 0) {
-            this.scene.fences.push(new Fence(pos));
+        if (this.tileBuildState.build && fenceIndex < 0) {
+            this.scene.fences.push(new Fence(vecCopy(pos)));
         }
-        else if (this.fenceBuildState.remove && fenceIndex >= 0) {
+        else if (this.tileBuildState.remove && fenceIndex >= 0) {
             this.scene.fences.splice(fenceIndex, 1);
         }
         this.scene.fences.forEach(f => {
@@ -145,15 +138,21 @@ class SpoZoo {
         canvas.width = this.scene.width;
         canvas.height = this.scene.height;
     }
-    drawFenceTile(ctx) {
-        const val = this.fenceBuildState.tileFlasher.next();
+    getMouseTilePos(mousePos) {
+        return {
+            x: Math.floor(mousePos.x / TileSize),
+            y: Math.floor(mousePos.y / TileSize)
+        };
+    }
+    drawFlashingTile(ctx) {
+        const val = this.tileBuildState.tileFlasher.next();
         let valHex = val.toString(16);
         if (valHex.length === 1)
             valHex = '0' + valHex;
         ctx.fillStyle = "#" + valHex + valHex + valHex;
-        let tileX = Math.floor(this.fenceBuildState.mousePos.x / FenceTileSize);
-        let tileY = Math.floor(this.fenceBuildState.mousePos.y / FenceTileSize);
-        ctx.fillRect(tileX * FenceTileSize, tileY * FenceTileSize, FenceTileSize, FenceTileSize);
+        let tileX = Math.floor(this.mousePos.x / TileSize);
+        let tileY = Math.floor(this.mousePos.y / TileSize);
+        ctx.fillRect(tileX * TileSize, tileY * TileSize, TileSize, TileSize);
     }
     drawLoop(canvas, ctx) {
         if (!this.inDrawLoop)
@@ -179,7 +178,7 @@ class SpoZoo {
         ctx.fillStyle = "black";
         ctx.fillRect(0, 0, this.scene.width, this.scene.height);
         if (this.currentInteractMode === 1 /* InteractMode.Fence */)
-            this.drawFenceTile(ctx);
+            this.drawFlashingTile(ctx);
         let sprites = this.scene.spos;
         sprites = sprites.concat(this.scene.fences);
         sprites.sort((a, b) => {
@@ -211,14 +210,12 @@ class SpoZoo {
         });
     }
     mouseDown_Fence(mousePos) {
-        this.fenceBuildState.mousePos = vecCopy(mousePos);
-        let tileX = Math.floor(this.fenceBuildState.mousePos.x / FenceTileSize);
-        let tileY = Math.floor(this.fenceBuildState.mousePos.y / FenceTileSize);
-        const fenceIndex = this.fenceAtTile({ x: tileX, y: tileY });
+        let tilePos = this.getMouseTilePos(this.mousePos);
+        const fenceIndex = this.fenceAtTile(tilePos);
         //Build fence if no fence is there
-        this.fenceBuildState.build = fenceIndex < 0;
-        this.fenceBuildState.remove = fenceIndex >= 0;
-        this.setFenceAtTile({ x: tileX, y: tileY }, fenceIndex);
+        this.tileBuildState.build = fenceIndex < 0;
+        this.tileBuildState.remove = fenceIndex >= 0;
+        this.setFenceAtTile(tilePos, fenceIndex);
     }
     event_mousedown(mousePos) {
         switch (this.currentInteractMode) {
@@ -231,21 +228,22 @@ class SpoZoo {
         }
     }
     mouseMove_fence(mousePos) {
-        this.fenceBuildState.mousePos = vecCopy(mousePos);
-        let tileX = Math.floor(this.fenceBuildState.mousePos.x / FenceTileSize);
-        let tileY = Math.floor(this.fenceBuildState.mousePos.y / FenceTileSize);
-        const fenceIndex = this.fenceAtTile({ x: tileX, y: tileY });
-        this.setFenceAtTile({ x: tileX, y: tileY }, fenceIndex);
+        if (!this.tileBuildState.build && !this.tileBuildState.remove)
+            return;
+        const tilePos = this.getMouseTilePos(mousePos);
+        const fenceIndex = this.fenceAtTile(tilePos);
+        this.setFenceAtTile(tilePos, fenceIndex);
     }
     event_mousemove(mousePos) {
+        this.mousePos = vecCopy(mousePos);
         this.scene.spos.forEach(s => {
             s.event_mousemove(mousePos);
         });
         this.mouseMove_fence(mousePos);
     }
     mouseUp_fence(mousePos) {
-        this.fenceBuildState.build = false;
-        this.fenceBuildState.remove = false;
+        this.tileBuildState.build = false;
+        this.tileBuildState.remove = false;
     }
     event_mouseup(mousePos) {
         this.scene.spos.forEach(s => {

@@ -8,10 +8,9 @@ type SpoZooScene = {
     sparkles: ParticleSys
 };
 
-type FenceBuildState = {
+type TileBuildState = {
     build: boolean,
     remove: boolean,
-    mousePos: Vec,
     tileFlasher: Flasher
 };
 
@@ -34,7 +33,9 @@ class SpoZoo {
     public spoDensityTarget: number;
     public spoLimit: number = 1000;
 
-    public fenceBuildState: FenceBuildState;
+    public tileBuildState: TileBuildState;
+
+    public mousePos: Vec;
 
     constructor(
             width : number = window.innerWidth,
@@ -60,20 +61,13 @@ class SpoZoo {
 
         this.spoDensityTarget = 0.5;
 
-        this.fenceBuildState = {
+        this.tileBuildState = {
             build: false,
             remove: false,
-            mousePos: {x: 0, y: 0},
             tileFlasher: new Flasher(0x10, 0x60, 6)
         };
 
-        //TEST
-        this.scene.fences.push(new Fence({x: 6, y: 4}));
-        this.scene.fences.push(new Fence({x: 7, y: 4}));
-        this.scene.fences.push(new Fence({x: 7, y: 5}));
-        this.scene.fences.forEach(f => {
-            f.updateNeighbors(this.scene);
-        });
+        this.mousePos = {x: 0, y: 0};
     }
 
     public spoTargetDeviation(): number {
@@ -167,9 +161,9 @@ class SpoZoo {
         if (!fenceIndex)
             fenceIndex = this.fenceAtTile(pos);
 
-        if (this.fenceBuildState.build && fenceIndex < 0) {
-            this.scene.fences.push(new Fence(pos));
-        } else if (this.fenceBuildState.remove && fenceIndex >= 0) {
+        if (this.tileBuildState.build && fenceIndex < 0) {
+            this.scene.fences.push(new Fence(vecCopy(pos)));
+        } else if (this.tileBuildState.remove && fenceIndex >= 0) {
             this.scene.fences.splice(fenceIndex, 1);
         }
 
@@ -214,18 +208,25 @@ class SpoZoo {
         canvas.height = this.scene.height;
     }
 
-    private drawFenceTile(ctx: CanvasRenderingContext2D): void {
-        const val = this.fenceBuildState.tileFlasher.next();
+    private getMouseTilePos(mousePos: Vec): Vec {
+        return {
+            x: Math.floor(mousePos.x / TileSize),
+            y: Math.floor(mousePos.y / TileSize)
+        };
+    }
+
+    private drawFlashingTile(ctx: CanvasRenderingContext2D): void {
+        const val = this.tileBuildState.tileFlasher.next();
 
         let valHex = val.toString(16);
         if (valHex.length === 1) valHex = '0'+valHex;
 
         ctx.fillStyle = "#"+valHex+valHex+valHex;
 
-        let tileX = Math.floor(this.fenceBuildState.mousePos.x / FenceTileSize);
-        let tileY = Math.floor(this.fenceBuildState.mousePos.y / FenceTileSize);
+        let tileX = Math.floor(this.mousePos.x / TileSize);
+        let tileY = Math.floor(this.mousePos.y / TileSize);
 
-        ctx.fillRect(tileX * FenceTileSize, tileY * FenceTileSize, FenceTileSize, FenceTileSize);
+        ctx.fillRect(tileX * TileSize, tileY * TileSize, TileSize, TileSize);
     }
 
     private drawLoop(canvas : HTMLCanvasElement, ctx : CanvasRenderingContext2D): void {
@@ -261,7 +262,7 @@ class SpoZoo {
         ctx.fillRect(0, 0, this.scene.width, this.scene.height);
 
         if (this.currentInteractMode === InteractMode.Fence)
-            this.drawFenceTile(ctx);
+            this.drawFlashingTile(ctx);
 
         let sprites : Sprite[] = this.scene.spos;
         sprites = sprites.concat(this.scene.fences);
@@ -299,21 +300,15 @@ class SpoZoo {
     }
 
     public mouseDown_Fence(mousePos: Vec): void {
-        this.fenceBuildState.mousePos = vecCopy(mousePos);
+        let tilePos = this.getMouseTilePos(this.mousePos);
 
-        let tileX = Math.floor(this.fenceBuildState.mousePos.x / FenceTileSize);
-        let tileY = Math.floor(this.fenceBuildState.mousePos.y / FenceTileSize);
-
-        const fenceIndex = this.fenceAtTile({x: tileX, y: tileY});
+        const fenceIndex = this.fenceAtTile(tilePos);
 
         //Build fence if no fence is there
-        this.fenceBuildState.build = fenceIndex < 0;
-        this.fenceBuildState.remove = fenceIndex >= 0;
+        this.tileBuildState.build = fenceIndex < 0;
+        this.tileBuildState.remove = fenceIndex >= 0;
 
-        this.setFenceAtTile(
-            {x: tileX, y: tileY},
-            fenceIndex
-        );
+        this.setFenceAtTile(tilePos, fenceIndex);
     }
 
     public event_mousedown(mousePos: Vec): void {
@@ -328,20 +323,21 @@ class SpoZoo {
     }
 
     public mouseMove_fence(mousePos: Vec) {
-        this.fenceBuildState.mousePos = vecCopy(mousePos);
+        if (!this.tileBuildState.build && !this.tileBuildState.remove) return;
 
-        let tileX = Math.floor(this.fenceBuildState.mousePos.x / FenceTileSize);
-        let tileY = Math.floor(this.fenceBuildState.mousePos.y / FenceTileSize);
+        const tilePos = this.getMouseTilePos(mousePos);
 
-        const fenceIndex = this.fenceAtTile({x: tileX, y: tileY});
+        const fenceIndex = this.fenceAtTile(tilePos);
 
         this.setFenceAtTile(
-            {x: tileX, y: tileY},
+            tilePos,
             fenceIndex
         );
     }
 
     public event_mousemove(mousePos: Vec): void {
+        this.mousePos = vecCopy(mousePos);
+
         this.scene.spos.forEach(s => {
             s.event_mousemove(mousePos);
         });
@@ -350,8 +346,8 @@ class SpoZoo {
     }
 
     public mouseUp_fence(mousePos: Vec) {
-        this.fenceBuildState.build = false;
-        this.fenceBuildState.remove = false;
+        this.tileBuildState.build = false;
+        this.tileBuildState.remove = false;
     }
 
     public event_mouseup(mousePos: Vec): void {

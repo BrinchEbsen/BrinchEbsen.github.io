@@ -5,6 +5,18 @@ function vecCopy(vec) {
         y: vec.y
     };
 }
+function vecAdd(vec1, vec2) {
+    return {
+        x: vec1.x + vec2.x,
+        y: vec1.y + vec2.y
+    };
+}
+function vecSub(vec1, vec2) {
+    return {
+        x: vec1.x - vec2.x,
+        y: vec1.y - vec2.y
+    };
+}
 function vecFromTo(vec1, vec2) {
     return {
         x: vec2.x - vec1.x,
@@ -18,13 +30,13 @@ function vecDist(vec1, vec2) {
     const fromTo = vecFromTo(vec1, vec2);
     return vecLength(fromTo);
 }
-function vecNormalize(vec) {
+function vecNormalize(vec, newLen = 1) {
     const len = vecLength(vec);
     if (len == 0)
         return vec;
     return {
-        x: vec.x / len,
-        y: vec.y / len
+        x: (vec.x / len) * newLen,
+        y: (vec.y / len) * newLen
     };
 }
 function vecDirectionName(vec) {

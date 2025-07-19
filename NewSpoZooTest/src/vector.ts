@@ -7,6 +7,20 @@ function vecCopy(vec: Vec): Vec {
     }
 }
 
+function vecAdd(vec1: Vec, vec2: Vec): Vec {
+    return {
+        x: vec1.x + vec2.x,
+        y: vec1.y + vec2.y
+    };
+}
+
+function vecSub(vec1: Vec, vec2: Vec): Vec {
+    return {
+        x: vec1.x - vec2.x,
+        y: vec1.y - vec2.y
+    };
+}
+
 function vecFromTo(vec1 : Vec, vec2 : Vec) : Vec {
     return {
         x: vec2.x - vec1.x,
@@ -23,13 +37,13 @@ function vecDist(vec1 : Vec, vec2 : Vec) : number {
     return vecLength(fromTo);
 }
 
-function vecNormalize(vec : Vec) : Vec {
+function vecNormalize(vec : Vec, newLen: number = 1) : Vec {
     const len = vecLength(vec);
     if (len == 0) return vec;
 
     return {
-        x: vec.x / len,
-        y: vec.y / len
+        x: (vec.x / len) * newLen,
+        y: (vec.y / len) * newLen
     };
 }
 

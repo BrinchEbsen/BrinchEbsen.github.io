@@ -207,6 +207,17 @@ class Spo {
         if (vecDist(this.anchorPos, this.target) < this.speed)
             this.makeStand();
     }
+    handleCollision(scene) {
+        scene.fences.forEach(f => {
+            const result = f.testCollision(this.anchorPos);
+            if (result.hit) {
+                this.anchorPos = vecCopy(result.newPos);
+            }
+        });
+    }
+    shouldDoCollision() {
+        return this.state != 5 /* SpoState.Grabbed */;
+    }
     step(scene) {
         if (this.requestDelete)
             return;
@@ -227,6 +238,8 @@ class Spo {
                 this.handleWalkToPoint();
                 break;
         }
+        if (this.shouldDoCollision())
+            this.handleCollision(scene);
         if (this.despawn) {
             if (this.testOutsideEdge(scene)) {
                 this.requestDelete = true;

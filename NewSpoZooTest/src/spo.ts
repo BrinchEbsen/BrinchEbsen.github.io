@@ -282,6 +282,19 @@ class Spo implements Sprite {
             this.makeStand();
     }
 
+    handleCollision(scene: SpoZooScene): void {
+        scene.fences.forEach(f => {
+            const result = f.testCollision(this.anchorPos);
+            if (result.hit) {
+                this.anchorPos = vecCopy(result.newPos);
+            }
+        });
+    }
+
+    shouldDoCollision(): boolean {
+        return this.state != SpoState.Grabbed;
+    }
+
     step(scene : SpoZooScene) : void {
         if (this.requestDelete) return;
 
@@ -302,6 +315,9 @@ class Spo implements Sprite {
                 this.handleWalkToPoint();
                 break;
         }
+
+        if (this.shouldDoCollision())
+            this.handleCollision(scene);
 
         if (this.despawn) {
             if (this.testOutsideEdge(scene)) {
