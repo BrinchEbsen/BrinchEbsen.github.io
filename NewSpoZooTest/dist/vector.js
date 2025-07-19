@@ -1,4 +1,10 @@
 "use strict";
+function vecCopy(vec) {
+    return {
+        x: vec.x,
+        y: vec.y
+    };
+}
 function vecFromTo(vec1, vec2) {
     return {
         x: vec2.x - vec1.x,

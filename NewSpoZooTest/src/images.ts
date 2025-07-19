@@ -6,10 +6,12 @@ type SpoAnimInfo = {
     numFrames : number
 };
 
-const SpoTypes : string[] = [
+const SpoTypes = [
     "regular",
     "gold"
-];
+] as const;
+
+type SpoType = typeof SpoTypes[number];
 
 const SpoAnimInfoList : SpoAnimInfo[] = [
     {name: "stand_up",        rate: 0.25, numFrames: 12},
@@ -28,7 +30,7 @@ const SpoAnimInfoList : SpoAnimInfo[] = [
     {name: "walk_downleft",   rate: 0.5 , numFrames: 12},
     {name: "walk_left",       rate: 0.5 , numFrames: 12},
     {name: "walk_upleft",     rate: 0.5 , numFrames: 12}
-];
+] as const;
 
 const SpoAnimFrames = new Map<string, HTMLImageElement[]>;
 
@@ -74,7 +76,7 @@ const FenceFrameNames : string[] = [
     "fence_D",
     "fence_DL",
     "fence_L"
-];
+] as const;
 
 const FenceFrames = new Map<string, HTMLImageElement>;
 

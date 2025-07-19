@@ -1,12 +1,23 @@
 "use strict";
 ;
 const SpoWalkBackInBoundsBuffer = 40;
+const SpoBiasTowardMiddleBuffer = 60;
 const SpoSpinChance = 0.002;
+const SpoFleeRandomTurnChance = 0.1;
+const SpoGoldenSparkleSpawnChance = 0.03;
+const SpoFrameSize = 128;
+const SpoBoundsBoxOffset = { x: 32, y: 32 };
+const SpoBoundBoxSize = 64;
+const SpoGrabRange = 40;
+const SpoLookAtRange = 200;
+const SpoScatterFromMouseRange = 400;
 class Spo {
     constructor(pos, dir = { x: 0, y: 1 }, startState = 1 /* SpoState.Stand */) {
         this.target = { x: 0, y: 0 };
         this.animations = new Map;
         this.timer = 0;
+        this.despawn = false;
+        this.requestDelete = false;
         this.pos = pos;
         this.dir = dir;
         this.state = startState;
@@ -31,6 +42,20 @@ class Spo {
             y: this.pos.y + 80
         };
     }
+    set anchorPos(val) {
+        this.pos.x = val.x - 64;
+        this.pos.y = val.y - 80;
+    }
+    get middlePos() {
+        return {
+            x: this.pos.x + 64,
+            y: this.pos.y + 64
+        };
+    }
+    set middlePos(val) {
+        this.pos.x = val.x - 64;
+        this.pos.y = val.y - 64;
+    }
     setTimer(val = randomIntFromTo(10, 240)) {
         this.timer = val;
     }
@@ -43,34 +68,38 @@ class Spo {
         return false;
     }
     setType(type) {
-        if (!SpoTypes.includes(type))
-            throw new Error(`Type ${type} is not a valid Spo type!`);
         this.type = type;
         this.initAnimations();
     }
     randomDir() {
         const oneEighthAng = Math.PI / 4;
         const ang = oneEighthAng * randomIntFromTo(0, 8) - Math.PI;
-        this.dir = {
-            x: Math.sin(ang),
-            y: Math.cos(ang)
-        };
+        this.facingAngle = ang;
     }
     turn(left, amount = 1) {
         const oneEighthAng = Math.PI / 4;
-        const ang = oneEighthAng * amount;
-        this.setAng(ang);
+        let ang = oneEighthAng * amount;
+        if (!left)
+            ang = -ang;
+        this.turnByAng(ang);
     }
-    setAng(ang) {
+    get facingAngle() {
+        return Math.atan2(this.dir.x, this.dir.y);
+    }
+    set facingAngle(ang) {
+        this.dir.x = Math.sin(ang);
+        this.dir.y = Math.cos(ang);
+    }
+    turnByAng(ang) {
         this.dir = {
             x: Math.cos(ang) * this.dir.x - Math.sin(ang) * this.dir.y,
             y: Math.sin(ang) * this.dir.x + Math.cos(ang) * this.dir.y,
         };
     }
     takeStep(speedModif = 1) {
-        this.dir = vecNormalize(this.dir);
-        this.pos.x += this.dir.x * this.speed * speedModif;
-        this.pos.y += this.dir.y * this.speed * speedModif;
+        const move = vecNormalize(this.dir);
+        this.pos.x += move.x * this.speed * speedModif;
+        this.pos.y += move.y * this.speed * speedModif;
     }
     makeStand(forFrames = undefined) {
         if (!forFrames)
@@ -83,6 +112,12 @@ class Spo {
             forFrames = randomIntFromTo(10, 120);
         this.setTimer(forFrames);
         this.state = 0 /* SpoState.Walk */;
+    }
+    makeFlee(forFrames = undefined) {
+        if (!forFrames)
+            forFrames = randomIntFromTo(180, 240);
+        this.setTimer(forFrames);
+        this.state = 2 /* SpoState.Flee */;
     }
     makeWalkRandomDirection(forFrames = undefined) {
         this.randomDir();
@@ -97,6 +132,13 @@ class Spo {
             forFrames = randomIntFromTo(32, 64);
         this.setTimer(forFrames);
         this.state = 3 /* SpoState.Spin */;
+    }
+    makeGrabbed() {
+        this.state = 5 /* SpoState.Grabbed */;
+    }
+    allowScatter() {
+        return (this.state !== 2 /* SpoState.Flee */ &&
+            this.state !== 5 /* SpoState.Grabbed */);
     }
     testPastEdge(scene) {
         const ancor = this.anchorPos;
@@ -119,41 +161,85 @@ class Spo {
         else if (pastBottom) {
             walkTo.y = scene.height - SpoWalkBackInBoundsBuffer;
         }
-        console.log("I'm walkin' back!");
-        this.makeWalkToPoint(walkTo);
+        this.dir = vecFromTo(this.anchorPos, walkTo);
+        this.makeWalk(randomIntFromTo(40, 80));
+    }
+    testOutsideEdge(scene) {
+        if ((this.pos.x < -SpoFrameSize) || (this.pos.x > scene.width) ||
+            (this.pos.y < -SpoFrameSize) || (this.pos.y > scene.height)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    handleWalk() {
+        this.takeStep();
+        if (this.tickTimer())
+            this.makeStand();
+    }
+    handleStand() {
+        if (this.tickTimer()) {
+            if (randomBool(SpoSpinChance)) {
+                this.makeSpin();
+            }
+            else {
+                this.makeWalkRandomDirection();
+            }
+        }
+    }
+    handleFlee() {
+        this.takeStep(2);
+        if (randomBool(SpoFleeRandomTurnChance))
+            this.turn(randomBool(), randomFromTo(0.5, 1.5));
+        if (this.tickTimer())
+            this.makeStand();
+    }
+    handleSpin() {
+        if (this.timer % 2 == 0)
+            this.turn(false);
+        if (this.tickTimer())
+            this.makeStand();
+    }
+    handleWalkToPoint() {
+        this.dir = vecFromTo(this.anchorPos, this.target);
+        this.takeStep();
+        if (vecDist(this.anchorPos, this.target) < this.speed)
+            this.makeStand();
     }
     step(scene) {
+        if (this.requestDelete)
+            return;
         switch (this.state) {
             case 0 /* SpoState.Walk */:
-                this.takeStep();
-                if (this.tickTimer())
-                    this.makeStand();
+                this.handleWalk();
                 break;
             case 1 /* SpoState.Stand */:
-                if (this.tickTimer()) {
-                    if (randomBool(SpoSpinChance)) {
-                        this.makeSpin();
-                    }
-                    else {
-                        this.makeWalkRandomDirection();
-                    }
-                }
+                this.handleStand();
+                break;
+            case 2 /* SpoState.Flee */:
+                this.handleFlee();
                 break;
             case 3 /* SpoState.Spin */:
-                if (this.timer % 2 == 0)
-                    this.turn(false);
-                if (this.tickTimer())
-                    this.makeStand();
+                this.handleSpin();
                 break;
             case 4 /* SpoState.WalkToPoint */:
-                this.dir = vecFromTo(this.anchorPos, this.target);
-                this.takeStep();
-                if (vecDist(this.anchorPos, this.target) < this.speed) {
-                    this.makeStand();
-                }
+                this.handleWalkToPoint();
                 break;
         }
-        this.testPastEdge(scene);
+        if (this.despawn) {
+            if (this.testOutsideEdge(scene)) {
+                this.requestDelete = true;
+            }
+        }
+        else {
+            this.testPastEdge(scene);
+        }
+        if (this.type === "gold") {
+            if (randomBool(SpoGoldenSparkleSpawnChance)) {
+                scene.sparkles.addParticleRange(this.pos.x + SpoBoundsBoxOffset.x, this.pos.x + SpoBoundsBoxOffset.x + SpoBoundBoxSize, this.pos.y + SpoBoundsBoxOffset.y, this.pos.y + SpoBoundBoxSize + SpoBoundsBoxOffset.y);
+            }
+        }
     }
     getAnimName() {
         let name = this.type + "_";
@@ -161,11 +247,11 @@ class Spo {
             case 0 /* SpoState.Walk */:
             case 2 /* SpoState.Flee */:
             case 4 /* SpoState.WalkToPoint */:
+            case 5 /* SpoState.Grabbed */:
                 name += "walk_";
                 break;
             case 1 /* SpoState.Stand */:
             case 3 /* SpoState.Spin */:
-            case 5 /* SpoState.StandStill */:
                 name += "stand_";
                 break;
         }
@@ -178,6 +264,55 @@ class Spo {
         if (anim === undefined) {
             throw new Error(`Spo animation ${animName} not present.`);
         }
-        anim.draw(ctx, this.pos);
+        let size = 1;
+        let rate = 1;
+        switch (this.state) {
+            case 2 /* SpoState.Flee */:
+                rate = 2;
+                break;
+            case 5 /* SpoState.Grabbed */:
+                rate = 4;
+                size = 1.5;
+                break;
+        }
+        anim.draw(ctx, this.pos, size, rate);
+    }
+    event_mousedown(mousePos, checkGrab = false) {
+        let gotGrabbed = false;
+        if (checkGrab && this.state !== 5 /* SpoState.Grabbed */) {
+            const dist = vecDist(this.middlePos, mousePos);
+            if (dist < SpoGrabRange) {
+                this.middlePos = vecCopy(mousePos);
+                this.makeGrabbed();
+                gotGrabbed = true;
+            }
+        }
+        if (!gotGrabbed) {
+            if (!this.allowScatter())
+                return;
+            //Scatter from the mouse click
+            const vecDir = vecFromTo(mousePos, this.anchorPos);
+            const dist = vecLength(vecDir);
+            if (dist < SpoScatterFromMouseRange) {
+                this.dir = vecDir;
+                this.makeWalk();
+            }
+        }
+    }
+    event_mousemove(mousePos) {
+        if (this.state === 5 /* SpoState.Grabbed */) {
+            this.middlePos = vecCopy(mousePos);
+        }
+        else if (this.state === 1 /* SpoState.Stand */) {
+            const dist = vecDist(this.middlePos, mousePos);
+            if (dist < SpoLookAtRange) {
+                this.dir = vecFromTo(this.anchorPos, mousePos);
+            }
+        }
+    }
+    event_mouseup(mousePos) {
+        if (this.state === 5 /* SpoState.Grabbed */) {
+            this.makeFlee();
+        }
     }
 }

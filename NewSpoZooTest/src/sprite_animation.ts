@@ -16,7 +16,7 @@ class SpriteAnimation {
         if (rate <= 0) throw new Error(`Invalid animation rate: ${rate}.`);
         this.rate = rate;
 
-        this.running = true;
+        this.running = this.frames.length == 0 ? false : true;
 
         this.timeline = 0;
     }

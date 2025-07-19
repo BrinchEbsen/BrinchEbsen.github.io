@@ -4,10 +4,10 @@ const CTX : CanvasRenderingContext2D = CANVAS.getContext("2d")!;
 const CanvasMousePos : Vec = {x: 0, y: 0};
 
 function updateCanvasMousePos(ev : MouseEvent) : void {
-    const rect : DOMRect = CANVAS.getBoundingClientRect();
-
-    CanvasMousePos.x = ev.pageX - rect.left;
-    CanvasMousePos.y = ev.pageY - rect.top;
+    //const rect : DOMRect = CANVAS.getBoundingClientRect();
+    
+    CanvasMousePos.x = ev.pageX;
+    CanvasMousePos.y = ev.pageY;
 }
 
 function setEnableScroll(enable : boolean) : void {

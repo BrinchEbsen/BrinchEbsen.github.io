@@ -1,5 +1,12 @@
 type Vec = { x: number, y: number };
 
+function vecCopy(vec: Vec): Vec {
+    return {
+        x: vec.x,
+        y: vec.y
+    }
+}
+
 function vecFromTo(vec1 : Vec, vec2 : Vec) : Vec {
     return {
         x: vec2.x - vec1.x,
