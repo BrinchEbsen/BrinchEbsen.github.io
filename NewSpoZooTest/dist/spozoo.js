@@ -1,6 +1,7 @@
 "use strict";
+;
 class SpoZoo {
-    constructor(width = window.innerWidth, height = window.innerHeight, fps = 60) {
+    constructor(tileWidth, tileHeight, fps = 60) {
         this.fps = 0;
         this.frameInterval = 0;
         this.drawMsCurr = 0;
@@ -10,16 +11,19 @@ class SpoZoo {
         this.setFps(fps);
         this.currentInteractMode = 0 /* InteractMode.Spos */;
         this.scene = {
-            width: width,
-            height: height,
-            minWidth: 400,
-            minHeight: 400,
+            width: tileWidth * TileSize,
+            height: tileHeight * TileSize,
+            minTileWidth: 4,
+            minTileHeight: 4,
+            maxTileWidth: 100,
+            maxTileHeight: 100,
+            removeSpos: false,
             spos: [],
             fences: [],
-            sparkles: new ParticleSys(SparkleFrames, {
-                loop: false, lifespan: -1, rate: 0.25
-            })
+            particles: new Map
         };
+        this.setDimentions(tileWidth, tileHeight);
+        this.createParticleSystems();
         this.spoDensityTarget = 0.5;
         this.tileBuildState = {
             build: false,
@@ -27,6 +31,20 @@ class SpoZoo {
             tileFlasher: new Flasher(0x10, 0x60, 6)
         };
         this.mousePos = { x: 0, y: 0 };
+    }
+    get sceneTileWidth() {
+        return Math.floor(this.scene.width / TileSize);
+    }
+    get sceneTileHeight() {
+        return Math.floor(this.scene.height / TileSize);
+    }
+    createParticleSystems() {
+        this.scene.particles.set(0 /* ParticleType.Sparkle */, new ParticleSys(SparkleFrames, {
+            loop: false, lifespan: -1, rate: 0.25
+        }));
+        this.scene.particles.set(1 /* ParticleType.Sweat */, new ParticleSys([SweatDropFrame], {
+            loop: true, lifespan: 8, rate: 1, size: 0.5
+        }));
     }
     spoTargetDeviation() {
         const oneSpo = SpoBoundBoxSize * SpoBoundBoxSize;
@@ -59,6 +77,7 @@ class SpoZoo {
             };
         }
         const spo = new Spo(spoPos);
+        //spo.setType("gold"); //TEST
         this.scene.spos.push(spo);
     }
     setRandomSpoForDespawn() {
@@ -71,13 +90,9 @@ class SpoZoo {
     testAdjustSpoAmount() {
         const deviation = this.spoTargetDeviation();
         if (deviation > 0 && this.scene.spos.length < this.spoLimit)
-            this.addSpo();
-        if (deviation < 0) {
-            const numDespawn = this.numSposSetForDespawn();
-            const numToDespawn = Math.abs(deviation) - numDespawn;
-            if (numToDespawn > 0)
-                this.setRandomSpoForDespawn();
-        }
+            if (randomBool(0.25))
+                this.addSpo();
+        this.scene.removeSpos = deviation < 0;
     }
     purgeSpos() {
         for (let i = 0; i < this.scene.spos.length; i++) {
@@ -100,6 +115,11 @@ class SpoZoo {
     setFenceAtTile(pos, fenceIndex = undefined) {
         if (!fenceIndex)
             fenceIndex = this.fenceAtTile(pos);
+        //Don't place if out of bounds.
+        if ((pos.x * TileSize) < 0 || (pos.x * TileSize) >= this.scene.width ||
+            (pos.y * TileSize) < 0 || (pos.y * TileSize) >= this.scene.height) {
+            return;
+        }
         if (this.tileBuildState.build && fenceIndex < 0) {
             this.scene.fences.push(new Fence(vecCopy(pos)));
         }
@@ -128,13 +148,14 @@ class SpoZoo {
         this.inDrawLoop = false;
     }
     fitCanvas(canvas) {
-        this.scene.width = Math.max(window.innerWidth, this.scene.minWidth);
-        this.scene.height = Math.max(window.innerHeight, this.scene.minHeight);
-        if ((this.scene.width > window.innerWidth) ||
-            (this.scene.height > window.innerHeight))
-            setEnableScroll(true);
-        else
-            setEnableScroll(false);
+        //this.scene.width  = Math.max(window.innerWidth,  this.scene.minWidth);
+        //this.scene.height = Math.max(window.innerHeight, this.scene.minHeight);
+        //
+        //if ((this.scene.width  > window.innerWidth) ||
+        //    (this.scene.height > window.innerHeight))
+        //    setEnableScroll(true);
+        //else
+        //    setEnableScroll(false);
         canvas.width = this.scene.width;
         canvas.height = this.scene.height;
     }
@@ -154,6 +175,18 @@ class SpoZoo {
         let tileY = Math.floor(this.mousePos.y / TileSize);
         ctx.fillRect(tileX * TileSize, tileY * TileSize, TileSize, TileSize);
     }
+    setDimentions(w, h) {
+        if (w < this.scene.minTileWidth)
+            w = this.scene.minTileWidth;
+        if (w > this.scene.maxTileWidth)
+            w = this.scene.maxTileWidth;
+        if (h < this.scene.minTileHeight)
+            h = this.scene.minTileHeight;
+        if (h > this.scene.maxTileHeight)
+            h = this.scene.maxTileHeight;
+        this.scene.width = w * TileSize;
+        this.scene.height = h * TileSize;
+    }
     drawLoop(canvas, ctx) {
         if (!this.inDrawLoop)
             return;
@@ -161,13 +194,17 @@ class SpoZoo {
         if ((this.drawMsCurr - this.drawMsLast) > this.frameInterval) {
             this.drawMsLast = this.drawMsCurr;
             this.fitCanvas(canvas);
-            if (randomBool(0.25))
-                this.testAdjustSpoAmount();
+            this.testAdjustSpoAmount();
+            //Purge spos to be deleted
             this.purgeSpos();
+            //Step spos
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
             });
-            this.scene.sparkles.step();
+            //Step particle systems
+            this.scene.particles.forEach(sys => {
+                sys.step();
+            });
             this.drawFrame(ctx);
         }
         window.requestAnimationFrame(() => {
@@ -199,7 +236,9 @@ class SpoZoo {
         sprites.forEach(s => {
             s.draw(ctx);
         });
-        this.scene.sparkles.draw(ctx);
+        this.scene.particles.forEach(sys => {
+            sys.draw(ctx);
+        });
     }
     mouseDown_Spos(mousePos) {
         let checkGrab = true;
@@ -258,14 +297,5 @@ class SpoZoo {
     event_keyup(ev) {
     }
     event_keypress(ev) {
-        const key = ev.key;
-        switch (key) {
-            case "s":
-                this.currentInteractMode = 0 /* InteractMode.Spos */;
-                break;
-            case "f":
-                this.currentInteractMode = 1 /* InteractMode.Fence */;
-                break;
-        }
     }
 }

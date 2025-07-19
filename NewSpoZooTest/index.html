@@ -7,16 +7,39 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="assets/icon.png">
 </head>
-<body class="disableScroll">
-    <canvas id="canvas"></canvas>
+<body>
+    <div class="menu" class="spoZooMenu">
+        <div class="menuSegment" id="interactTypeButtons">
+            <label class="menuRadioButton">
+                <input type="radio" name="interactType" id="spos">
+                Move Spos
+            </label>
+            <label class="menuRadioButton">
+                <input type="radio" name="interactType" id="fence">
+                Build Fence
+            </label>
+        </div>
+        <div class="menuSegment" id="sceneSizeButtons">
+            <label>Width:</label>
+            <button id="widthIncrease" class="squareButton">+</button>
+            <button id="widthDecrease" class="squareButton">-</button>
+            <label>Height:</label>
+            <button id="heightIncrease" class="squareButton">+</button>
+            <button id="heightDecrease" class="squareButton">-</button>
+        </div>
+    </div>
+    <div>
+        <canvas id="canvas"></canvas>
+    </div>
+
     <script src="dist/basetypes.js"></script>
+    <script src="dist/util.js"></script>
     <script src="dist/random.js"></script>
     <script src="dist/vector.js"></script>
     <script src="dist/flasher.js"></script>
     <script src="dist/images.js"></script>
     <script src="dist/canvas.js"></script>
     <script src="dist/sprite_animation.js"></script>
-    <script src="dist/sprite.js"></script>
     <script src="dist/particle_sys.js"></script>
     <script src="dist/spo.js"></script>
     <script src="dist/tiled_sprite.js"></script>

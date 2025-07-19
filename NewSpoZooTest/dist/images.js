@@ -89,10 +89,20 @@ function preloadSparkleFrames() {
     }
     return Promise.all(promises);
 }
+let SweatDropFrame;
+function preloadSweatDropFrame() {
+    const img = new Image();
+    img.src = `${AssetsFolder}/misc/sweat.png`;
+    SweatDropFrame = img;
+    return new Promise(resolve => {
+        img.onload = resolve;
+    });
+}
 function preloadAllFrames() {
     return Promise.all([
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
-        preloadSparkleFrames()
+        preloadSparkleFrames(),
+        preloadSweatDropFrame()
     ]);
 }

@@ -118,10 +118,24 @@ function preloadSparkleFrames() : Promise<any> {
     return Promise.all(promises);
 }
 
+let SweatDropFrame: HTMLImageElement;
+
+function preloadSweatDropFrame(): Promise<any> {
+    const img: HTMLImageElement = new Image();
+    img.src = `${AssetsFolder}/misc/sweat.png`;
+
+    SweatDropFrame = img;
+
+    return new Promise(resolve => {
+        img.onload = resolve;
+    });
+}
+
 function preloadAllFrames() : Promise<any> {
     return Promise.all([
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
-        preloadSparkleFrames()
+        preloadSparkleFrames(),
+        preloadSweatDropFrame()
     ]);
 }

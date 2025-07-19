@@ -1,40 +1,64 @@
-type ParticleSettings = {
-    loop: boolean,
-    lifespan: number,
-    rate: number
+type VelAcc = {
+    vel: Vec,
+    acc?: Vec
 };
+
+type PointVelAcc = {
+    point: Vec,
+    vel: number,
+    acc?: number
+};
+
+/**
+ * Global settings for a particle system.
+ */
+type ParticleSysParams = {
+    loop?: boolean,
+    lifespan?: number,
+    rate?: number,
+    size?: number
+};
+
+/**
+ * Parameters for individual particles.
+ */
+type ParticleParams = {
+    flyInDirection?: VelAcc,
+    flyAwayFrom?: PointVelAcc,
+    flyTowards?: PointVelAcc,
+}
 
 class Particle implements Sprite {
     public frames: HTMLImageElement[];
-    public settings: ParticleSettings;
+    public sysParams: ParticleSysParams;
 
     public anim: SpriteAnimation;
 
     public pos: Vec = {x: 0, y: 0};
-    public vel: Vec;
-    public accell: Vec;
+    public params: ParticleParams;
+    public size: number;
 
     public lifetime: number;
     public requestDelete: boolean;
 
     constructor(
         frames: HTMLImageElement[],
-        settings: ParticleSettings,
+        sysParams: ParticleSysParams,
         anchorPos: Vec,
-        vel: Vec = {x: 0, y: 0},
-        accell: Vec = {x: 0, y: 0}
+        size: number = 1,
+        params: ParticleParams = {}
     ) {
         this.frames = frames;
-        this.settings = settings;
+        this.sysParams = sysParams;
         this.anchorPos = anchorPos;
-        this.vel = vel;
-        this.accell = accell;
         this.lifetime = 0;
+        this.params = params;
+        this.size = size;
 
         this.anim = new SpriteAnimation(
             frames,
-            settings.loop,
-            settings.rate
+            sysParams.loop || false,
+            sysParams.rate || 1
         );
 
         this.requestDelete = false;
@@ -56,14 +80,51 @@ class Particle implements Sprite {
         this.pos.y = val.y - (this.frames[0].height/2);
     }
 
-    step(): void {
-        //Apply velocity
-        this.pos.x += this.vel.x;
-        this.pos.y += this.vel.y;
+    applyFlyInDirection(param: VelAcc): void {
+        this.pos.x += param.vel.x;
+        this.pos.y += param.vel.y;
 
-        //Apply accelleration
-        this.vel.x += this.accell.x;
-        this.vel.y += this.accell.y;
+        if (param.acc) {
+            param.vel.x += param.acc.x;
+            param.vel.y += param.acc.y;
+        }
+    }
+
+    applyFlyAwayFrom(param: PointVelAcc): void {
+        const dir = vecFromTo(param.point, this.anchorPos);
+        
+        const vel = vecNormalize(dir, param.vel);
+
+        this.pos.x += vel.x;
+        this.pos.y += vel.y;
+
+        if (param.acc) {
+            param.vel += param.acc;
+        }
+    }
+
+    applyFlyTowards(param: PointVelAcc): void {
+        const dir = vecFromTo(this.anchorPos, param.point);
+        
+        const vel = vecNormalize(dir, param.vel);
+
+        this.pos.x += vel.x;
+        this.pos.y += vel.y;
+
+        if (param.acc) {
+            param.vel += param.acc;
+        }
+    }
+
+    step(): void {
+        if (this.params.flyInDirection)
+            this.applyFlyInDirection(this.params.flyInDirection);
+
+        if (this.params.flyAwayFrom)
+            this.applyFlyAwayFrom(this.params.flyAwayFrom);
+
+        if (this.params.flyTowards)
+            this.applyFlyTowards(this.params.flyTowards);
     }
 
     draw(ctx: CanvasRenderingContext2D): void {
@@ -71,10 +132,12 @@ class Particle implements Sprite {
 
         this.lifetime++;
 
-        if (this.settings.lifespan >= 0) {
-            if (this.lifetime > this.settings.lifespan) {
-                this.requestDelete = true;
-                return;
+        if (this.sysParams.lifespan) {
+            if (this.sysParams.lifespan >= 0) {
+                if (this.lifetime > this.sysParams.lifespan) {
+                    this.requestDelete = true;
+                    return;
+                }
             }
         }
 
@@ -83,19 +146,19 @@ class Particle implements Sprite {
             return;
         }
 
-        this.anim.draw(ctx, this.pos);
+        this.anim.draw(ctx, this.pos, this.size);
     }
 }
 
 class ParticleSys {
     public frames: HTMLImageElement[];
-    public settings: ParticleSettings;
+    public params: ParticleSysParams;
 
     public particles: Particle[];
 
-    constructor(frames: HTMLImageElement[], settings: ParticleSettings) {
+    constructor(frames: HTMLImageElement[], params: ParticleSysParams) {
         this.frames = frames;
-        this.settings = settings;
+        this.params = params;
 
         this.particles = [];
     }
@@ -115,19 +178,28 @@ class ParticleSys {
         this.particles = [];
     }
 
-    addParticle(pos: Vec): Particle {
-        const particleAdd = new Particle(this.frames, this.settings, pos);
+    addParticle(pos: Vec, params: ParticleParams = {}): Particle {
+        let size = 1;
+        if (this.params.size) size = this.params.size;
+
+        const particleAdd = new Particle(this.frames, this.params, pos, size, params);
         this.particles.push(particleAdd);
         return particleAdd;
     }
 
-    addParticleRange(xMin: number, xMax: number, yMin: number, yMax: number): Particle {
+    addParticleRange(
+        xMin: number,
+        xMax: number,
+        yMin: number,
+        yMax: number,
+        params: ParticleParams = {}
+    ): Particle {
         const pos: Vec = {
             x: randomFromTo(xMin, xMax),
             y: randomFromTo(yMin, yMax)
         };
 
-        return this.addParticle(pos);
+        return this.addParticle(pos, params);
     }
 
     step(): void {

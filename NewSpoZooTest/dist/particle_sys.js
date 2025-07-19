@@ -1,14 +1,14 @@
 "use strict";
 class Particle {
-    constructor(frames, settings, anchorPos, vel = { x: 0, y: 0 }, accell = { x: 0, y: 0 }) {
+    constructor(frames, sysParams, anchorPos, size = 1, params = {}) {
         this.pos = { x: 0, y: 0 };
         this.frames = frames;
-        this.settings = settings;
+        this.sysParams = sysParams;
         this.anchorPos = anchorPos;
-        this.vel = vel;
-        this.accell = accell;
         this.lifetime = 0;
-        this.anim = new SpriteAnimation(frames, settings.loop, settings.rate);
+        this.params = params;
+        this.size = size;
+        this.anim = new SpriteAnimation(frames, sysParams.loop || false, sysParams.rate || 1);
         this.requestDelete = false;
     }
     get anchorPos() {
@@ -26,35 +26,63 @@ class Particle {
         this.pos.x = val.x - (this.frames[0].width / 2);
         this.pos.y = val.y - (this.frames[0].height / 2);
     }
+    applyFlyInDirection(param) {
+        this.pos.x += param.vel.x;
+        this.pos.y += param.vel.y;
+        if (param.acc) {
+            param.vel.x += param.acc.x;
+            param.vel.y += param.acc.y;
+        }
+    }
+    applyFlyAwayFrom(param) {
+        const dir = vecFromTo(param.point, this.anchorPos);
+        const vel = vecNormalize(dir, param.vel);
+        this.pos.x += vel.x;
+        this.pos.y += vel.y;
+        if (param.acc) {
+            param.vel += param.acc;
+        }
+    }
+    applyFlyTowards(param) {
+        const dir = vecFromTo(this.anchorPos, param.point);
+        const vel = vecNormalize(dir, param.vel);
+        this.pos.x += vel.x;
+        this.pos.y += vel.y;
+        if (param.acc) {
+            param.vel += param.acc;
+        }
+    }
     step() {
-        //Apply velocity
-        this.pos.x += this.vel.x;
-        this.pos.y += this.vel.y;
-        //Apply accelleration
-        this.vel.x += this.accell.x;
-        this.vel.y += this.accell.y;
+        if (this.params.flyInDirection)
+            this.applyFlyInDirection(this.params.flyInDirection);
+        if (this.params.flyAwayFrom)
+            this.applyFlyAwayFrom(this.params.flyAwayFrom);
+        if (this.params.flyTowards)
+            this.applyFlyTowards(this.params.flyTowards);
     }
     draw(ctx) {
         if (this.requestDelete)
             return;
         this.lifetime++;
-        if (this.settings.lifespan >= 0) {
-            if (this.lifetime > this.settings.lifespan) {
-                this.requestDelete = true;
-                return;
+        if (this.sysParams.lifespan) {
+            if (this.sysParams.lifespan >= 0) {
+                if (this.lifetime > this.sysParams.lifespan) {
+                    this.requestDelete = true;
+                    return;
+                }
             }
         }
         if (!this.anim.running) {
             this.requestDelete = true;
             return;
         }
-        this.anim.draw(ctx, this.pos);
+        this.anim.draw(ctx, this.pos, this.size);
     }
 }
 class ParticleSys {
-    constructor(frames, settings) {
+    constructor(frames, params) {
         this.frames = frames;
-        this.settings = settings;
+        this.params = params;
         this.particles = [];
     }
     purgeParticles() {
@@ -69,17 +97,20 @@ class ParticleSys {
     clearParticles() {
         this.particles = [];
     }
-    addParticle(pos) {
-        const particleAdd = new Particle(this.frames, this.settings, pos);
+    addParticle(pos, params = {}) {
+        let size = 1;
+        if (this.params.size)
+            size = this.params.size;
+        const particleAdd = new Particle(this.frames, this.params, pos, size, params);
         this.particles.push(particleAdd);
         return particleAdd;
     }
-    addParticleRange(xMin, xMax, yMin, yMax) {
+    addParticleRange(xMin, xMax, yMin, yMax, params = {}) {
         const pos = {
             x: randomFromTo(xMin, xMax),
             y: randomFromTo(yMin, yMax)
         };
-        return this.addParticle(pos);
+        return this.addParticle(pos, params);
     }
     step() {
         this.particles.forEach(p => {

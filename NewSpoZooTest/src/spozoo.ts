@@ -1,11 +1,19 @@
+const enum ParticleType {
+    Sparkle,
+    Sweat
+};
+
 type SpoZooScene = {
     width: number,
     height: number,
-    minWidth: number,
-    minHeight: number,
+    minTileWidth: number,
+    minTileHeight: number,
+    maxTileWidth: number,
+    maxTileHeight: number,
+    removeSpos: boolean,
     spos: Spo[],
     fences: Fence[],
-    sparkles: ParticleSys
+    particles: Map<ParticleType, ParticleSys>
 };
 
 type TileBuildState = {
@@ -38,9 +46,9 @@ class SpoZoo {
     public mousePos: Vec;
 
     constructor(
-            width : number = window.innerWidth,
-            height : number = window.innerHeight,
-            fps : number = 60
+            tileWidth: number,
+            tileHeight: number,
+            fps: number = 60
         ) {
         this.inDrawLoop = false;
         this.setFps(fps);
@@ -48,16 +56,21 @@ class SpoZoo {
         this.currentInteractMode = InteractMode.Spos;
 
         this.scene = {
-            width: width,
-            height: height,
-            minWidth: 400,
-            minHeight: 400,
+            width: tileWidth * TileSize,
+            height: tileHeight * TileSize,
+            minTileWidth: 4,
+            minTileHeight: 4,
+            maxTileWidth: 100,
+            maxTileHeight: 100,
+            removeSpos: false,
             spos: [],
             fences: [],
-            sparkles: new ParticleSys(SparkleFrames, {
-                loop: false, lifespan: -1, rate: 0.25
-            })
+            particles: new Map<ParticleType, ParticleSys>
         };
+
+        this.setDimentions(tileWidth, tileHeight);
+
+        this.createParticleSystems();
 
         this.spoDensityTarget = 0.5;
 
@@ -68,6 +81,26 @@ class SpoZoo {
         };
 
         this.mousePos = {x: 0, y: 0};
+    }
+
+    get sceneTileWidth(): number {
+        return Math.floor(this.scene.width / TileSize);
+    }
+    get sceneTileHeight(): number {
+        return Math.floor(this.scene.height / TileSize);
+    }
+
+    private createParticleSystems(): void {
+        this.scene.particles.set(ParticleType.Sparkle,
+            new ParticleSys(SparkleFrames, {
+                loop: false, lifespan: -1, rate: 0.25
+            })
+        );
+        this.scene.particles.set(ParticleType.Sweat, 
+            new ParticleSys([SweatDropFrame], {
+                loop: true, lifespan: 8, rate: 1, size: 0.5
+            })
+        );
     }
 
     public spoTargetDeviation(): number {
@@ -107,6 +140,7 @@ class SpoZoo {
         }
 
         const spo = new Spo(spoPos);
+        //spo.setType("gold"); //TEST
         this.scene.spos.push(spo);
     }
 
@@ -123,16 +157,9 @@ class SpoZoo {
         const deviation = this.spoTargetDeviation();
 
         if (deviation > 0 && this.scene.spos.length < this.spoLimit)
-            this.addSpo();
+            if (randomBool(0.25)) this.addSpo();
         
-        if (deviation < 0) {
-            const numDespawn = this.numSposSetForDespawn();
-
-            const numToDespawn = Math.abs(deviation) - numDespawn;
-
-            if (numToDespawn > 0)
-                this.setRandomSpoForDespawn();
-        }
+        this.scene.removeSpos = deviation < 0;
     }
 
     public purgeSpos(): void {
@@ -160,6 +187,11 @@ class SpoZoo {
     public setFenceAtTile(pos: Vec, fenceIndex: number | undefined = undefined) {
         if (!fenceIndex)
             fenceIndex = this.fenceAtTile(pos);
+
+        //Don't place if out of bounds.
+        if ((pos.x * TileSize) < 0 || (pos.x * TileSize) >= this.scene.width ||
+            (pos.y * TileSize) < 0 || (pos.y * TileSize) >= this.scene.height
+        ) { return; }
 
         if (this.tileBuildState.build && fenceIndex < 0) {
             this.scene.fences.push(new Fence(vecCopy(pos)));
@@ -195,14 +227,14 @@ class SpoZoo {
     }
 
     private fitCanvas(canvas : HTMLCanvasElement): void {
-        this.scene.width  = Math.max(window.innerWidth,  this.scene.minWidth);
-        this.scene.height = Math.max(window.innerHeight, this.scene.minHeight);
-        
-        if ((this.scene.width  > window.innerWidth) ||
-            (this.scene.height > window.innerHeight))
-            setEnableScroll(true);
-        else
-            setEnableScroll(false);
+        //this.scene.width  = Math.max(window.innerWidth,  this.scene.minWidth);
+        //this.scene.height = Math.max(window.innerHeight, this.scene.minHeight);
+        //
+        //if ((this.scene.width  > window.innerWidth) ||
+        //    (this.scene.height > window.innerHeight))
+        //    setEnableScroll(true);
+        //else
+        //    setEnableScroll(false);
 
         canvas.width = this.scene.width;
         canvas.height = this.scene.height;
@@ -229,6 +261,16 @@ class SpoZoo {
         ctx.fillRect(tileX * TileSize, tileY * TileSize, TileSize, TileSize);
     }
 
+    public setDimentions(w: number, h: number): void {
+        if (w < this.scene.minTileWidth)  w = this.scene.minTileWidth;
+        if (w > this.scene.maxTileWidth)  w = this.scene.maxTileWidth;
+        if (h < this.scene.minTileHeight) h = this.scene.minTileHeight;
+        if (h > this.scene.maxTileHeight) h = this.scene.maxTileHeight;
+
+        this.scene.width  = w * TileSize;
+        this.scene.height = h * TileSize;
+    }
+
     private drawLoop(canvas : HTMLCanvasElement, ctx : CanvasRenderingContext2D): void {
         if (!this.inDrawLoop) return;
 
@@ -239,15 +281,20 @@ class SpoZoo {
 
             this.fitCanvas(canvas);
 
-            if (randomBool(0.25)) this.testAdjustSpoAmount();
+            this.testAdjustSpoAmount();
 
+            //Purge spos to be deleted
             this.purgeSpos();
 
+            //Step spos
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
             });
 
-            this.scene.sparkles.step();
+            //Step particle systems
+            this.scene.particles.forEach(sys => {
+                sys.step();
+            })
 
             this.drawFrame(ctx);
         }
@@ -285,7 +332,9 @@ class SpoZoo {
             s.draw(ctx);
         });
 
-        this.scene.sparkles.draw(ctx);
+        this.scene.particles.forEach(sys => {
+            sys.draw(ctx);
+        })
     }
 
     public mouseDown_Spos(mousePos: Vec): void {
@@ -369,15 +418,6 @@ class SpoZoo {
     }
 
     public event_keypress(ev: KeyboardEvent): void {
-        const key = ev.key;
         
-        switch(key) {
-            case "s":
-                this.currentInteractMode = InteractMode.Spos;
-                break;
-            case "f":
-                this.currentInteractMode = InteractMode.Fence;
-                break;
-        }
     }
 }

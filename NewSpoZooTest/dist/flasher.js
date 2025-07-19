@@ -1,4 +1,7 @@
 "use strict";
+/**
+ * Holds a value that bounces up and down.
+ */
 class Flasher {
     constructor(min, max, step) {
         this.val = min;
@@ -7,6 +10,10 @@ class Flasher {
         this.step = step;
         this.rising = false;
     }
+    /**
+     * Advance the flasher and get the resulting value.
+     * @returns The resulting value after advancing the flasher.
+     */
     next() {
         this.val += this.rising ? this.step : -this.step;
         if (this.val > this.max) {
