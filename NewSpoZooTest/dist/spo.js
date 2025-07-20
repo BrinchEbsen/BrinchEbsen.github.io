@@ -221,12 +221,29 @@ class Spo {
         if (vecDist(this.anchorPos, this.target) < this.speed)
             this.makeStand();
     }
+    handleSpoCollision(other) {
+        if ((this.pos.x + SpoBoundBoxSize < other.pos.x) ||
+            (this.pos.x - SpoBoundBoxSize > other.pos.x) ||
+            (this.pos.y + SpoBoundBoxSize < other.pos.y) ||
+            (this.pos.y - SpoBoundBoxSize > other.pos.y)) {
+            return;
+        }
+        const vecBetween = vecFromTo(other.pos, this.pos);
+        const dist = vecLength(vecBetween);
+        if (dist < SpoBoundBoxSize / 2) {
+            const pushVec = vecNormalize(vecBetween, (SpoBoundBoxSize / 2) - dist);
+            this.pos = vecAdd(this.pos, pushVec);
+        }
+    }
     handleCollision(scene) {
         scene.fences.forEach(f => {
             const result = f.testCollision(this.anchorPos);
             if (result.hit) {
                 this.anchorPos = vecCopy(result.newPos);
             }
+        });
+        scene.spos.forEach(s => {
+            this.handleSpoCollision(s);
         });
     }
     shouldDoCollision() {
