@@ -1,7 +1,9 @@
 "use strict";
 ;
+const SpoZooMinTileWidth = 4;
+const SpoZooMinTileHeight = 4;
 class SpoZoo {
-    constructor(tileWidth, tileHeight, fps = 60) {
+    constructor(fps = 60) {
         this.fps = 0;
         this.frameInterval = 0;
         this.drawMsCurr = 0;
@@ -11,10 +13,10 @@ class SpoZoo {
         this.setFps(fps);
         this.currentInteractMode = 0;
         this.scene = {
-            width: tileWidth * TileSize,
-            height: tileHeight * TileSize,
-            minTileWidth: 4,
-            minTileHeight: 4,
+            width: SpoZooMinTileWidth * TileSize,
+            height: SpoZooMinTileHeight * TileSize,
+            minTileWidth: SpoZooMinTileWidth,
+            minTileHeight: SpoZooMinTileHeight,
             maxTileWidth: 100,
             maxTileHeight: 100,
             removeSpos: false,
@@ -23,7 +25,7 @@ class SpoZoo {
             grass: [],
             particles: new Map()
         };
-        this.setDimensions(tileWidth, tileHeight);
+        this.setDimensions(this.scene.width, this.scene.height);
         this.createParticleSystems();
         this.spoDensityTarget = 0.5;
         this.tileBuildState = {

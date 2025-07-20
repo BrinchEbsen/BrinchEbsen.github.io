@@ -45,6 +45,7 @@ function clearData() {
 
     try {
         localStorage.removeItem(SaveDataKey);
+        game.loadSaveData(createEmptySave());
     } catch(e) {
         console.error(e);
         if (e instanceof Error) {
@@ -159,7 +160,8 @@ function setupEvents(): void {
 }
 
 function main() : void {
-    game = new SpoZoo(15, 10);
+    game = new SpoZoo();
+    game.loadSaveData(createEmptySave());
 
     setupEvents();
     setupMenu();

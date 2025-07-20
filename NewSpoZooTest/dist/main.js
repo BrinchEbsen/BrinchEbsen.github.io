@@ -43,6 +43,7 @@ function clearData() {
     }
     try {
         localStorage.removeItem(SaveDataKey);
+        game.loadSaveData(createEmptySave());
     }
     catch (e) {
         console.error(e);
@@ -120,7 +121,8 @@ function setupEvents() {
     });
 }
 function main() {
-    game = new SpoZoo(15, 10);
+    game = new SpoZoo();
+    game.loadSaveData(createEmptySave());
     setupEvents();
     setupMenu();
     game.startDrawLoop(CANVAS, CTX);

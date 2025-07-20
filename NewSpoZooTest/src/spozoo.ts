@@ -29,6 +29,9 @@ const enum InteractMode {
     Grass
 }
 
+const SpoZooMinTileWidth = 4;
+const SpoZooMinTileHeight = 4;
+
 class SpoZoo {
     private inDrawLoop: boolean;
     public fps: number = 0;
@@ -50,8 +53,6 @@ class SpoZoo {
     public mousePos: Vec;
 
     constructor(
-            tileWidth: number,
-            tileHeight: number,
             fps: number = 60
         ) {
         this.inDrawLoop = false;
@@ -60,10 +61,10 @@ class SpoZoo {
         this.currentInteractMode = InteractMode.Spos;
 
         this.scene = {
-            width: tileWidth * TileSize,
-            height: tileHeight * TileSize,
-            minTileWidth: 4,
-            minTileHeight: 4,
+            width: SpoZooMinTileWidth * TileSize,
+            height: SpoZooMinTileHeight * TileSize,
+            minTileWidth: SpoZooMinTileWidth,
+            minTileHeight: SpoZooMinTileHeight,
             maxTileWidth: 100,
             maxTileHeight: 100,
             removeSpos: false,
@@ -73,7 +74,7 @@ class SpoZoo {
             particles: new Map<ParticleType, ParticleSys>()
         };
 
-        this.setDimensions(tileWidth, tileHeight);
+        this.setDimensions(this.scene.width, this.scene.height);
 
         this.createParticleSystems();
 

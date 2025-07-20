@@ -1,8 +1,8 @@
 "use strict";
 function createEmptySave() {
     return {
-        sceneTileWidth: 0,
-        sceneTileHeight: 0,
+        sceneTileWidth: 15,
+        sceneTileHeight: 10,
         spos: [],
         fencePositions: [],
         grassPositions: []
