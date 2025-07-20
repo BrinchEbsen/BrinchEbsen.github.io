@@ -8,7 +8,9 @@ type SpoAnimInfo = {
 
 const SpoTypes = [
     "regular",
-    "gold"
+    "gold",
+    "void",
+    "ember"
 ] as const;
 
 type SpoType = typeof SpoTypes[number];

@@ -2,7 +2,9 @@
 const AssetsFolder = "assets";
 const SpoTypes = [
     "regular",
-    "gold"
+    "gold",
+    "void",
+    "ember"
 ];
 const SpoAnimInfoList = [
     { name: "stand_up", rate: 0.25, numFrames: 12 },

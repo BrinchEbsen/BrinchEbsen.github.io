@@ -1,6 +1,6 @@
 "use strict";
 const CANVAS = document.getElementById("canvas");
-const CTX = CANVAS.getContext("2d");
+const CTX = CANVAS.getContext("2d", { alpha: false });
 let CanvasMouseInside = false;
 const CanvasMousePos = { x: 0, y: 0 };
 function updateCanvasMousePos(ev) {

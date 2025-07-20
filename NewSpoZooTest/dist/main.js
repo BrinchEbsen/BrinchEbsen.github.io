@@ -11,6 +11,9 @@ function setupMenu() {
     SpoZooMenuInteractFunctions.set("fence", (ev) => {
         game.currentInteractMode = 1 /* InteractMode.Fence */;
     });
+    SpoZooMenuInteractFunctions.set("grass", (ev) => {
+        game.currentInteractMode = 2 /* InteractMode.Grass */;
+    });
     const interactMenuElements = document.querySelectorAll('#interactTypeButtons input[name=interactType]');
     for (let i = 0; i < interactMenuElements.length; i++) {
         const item = interactMenuElements[i];
@@ -23,16 +26,16 @@ function setupMenu() {
             item.onclick = func;
     }
     (_a = document.getElementById('widthIncrease')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', (ev) => {
-        game.setDimentions(game.sceneTileWidth + 1, game.sceneTileHeight);
+        game.setDimensions(game.sceneTileWidth + 1, game.sceneTileHeight);
     });
     (_b = document.getElementById('widthDecrease')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', (ev) => {
-        game.setDimentions(game.sceneTileWidth - 1, game.sceneTileHeight);
+        game.setDimensions(game.sceneTileWidth - 1, game.sceneTileHeight);
     });
     (_c = document.getElementById('heightIncrease')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', (ev) => {
-        game.setDimentions(game.sceneTileWidth, game.sceneTileHeight + 1);
+        game.setDimensions(game.sceneTileWidth, game.sceneTileHeight + 1);
     });
     (_d = document.getElementById('heightDecrease')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', (ev) => {
-        game.setDimentions(game.sceneTileWidth, game.sceneTileHeight - 1);
+        game.setDimensions(game.sceneTileWidth, game.sceneTileHeight - 1);
     });
 }
 function setupEvents() {

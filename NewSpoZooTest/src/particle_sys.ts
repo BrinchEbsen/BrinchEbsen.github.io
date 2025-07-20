@@ -15,6 +15,7 @@ type PointVelAcc = {
 type ParticleSysParams = {
     loop?: boolean,
     lifespan?: number,
+    startFadeOut?: number,
     rate?: number,
     size?: number
 };
@@ -132,11 +133,19 @@ class Particle implements Sprite {
 
         this.lifetime++;
 
-        if (this.sysParams.lifespan) {
-            if (this.sysParams.lifespan >= 0) {
-                if (this.lifetime > this.sysParams.lifespan) {
-                    this.requestDelete = true;
-                    return;
+        if (this.sysParams.lifespan !== undefined) {
+            if (this.lifetime > this.sysParams.lifespan) {
+                this.requestDelete = true;
+                return;
+            }
+
+            if (this.sysParams.startFadeOut !== undefined) {
+                //Check if particle is fading out
+                if (this.lifetime >= this.sysParams.startFadeOut) {
+                    const fadeDuration = this.sysParams.lifespan - this.sysParams.startFadeOut;
+                    const currentDuration = this.lifetime - this.sysParams.startFadeOut;
+
+                    ctx.globalAlpha = 1 - (currentDuration / fadeDuration);
                 }
             }
         }
@@ -147,6 +156,7 @@ class Particle implements Sprite {
         }
 
         this.anim.draw(ctx, this.pos, this.size);
+        ctx.globalAlpha = 1;
     }
 }
 
@@ -161,6 +171,29 @@ class ParticleSys {
         this.params = params;
 
         this.particles = [];
+
+        if (!this.validateParams())
+            throw new Error("Invalid params for particle system.");
+    }
+
+    validateParams(): boolean {
+        if (this.params.lifespan !== undefined) {
+            if (this.params.lifespan <= 0) return false;
+            if (this.params.startFadeOut !== undefined)
+                if (this.params.startFadeOut > this.params.lifespan)
+                    return false;
+        } else {
+            //Can't start fading out if no end to timespan
+            if (this.params.startFadeOut !== undefined) return false;
+        }
+
+        if (this.params.rate !== undefined)
+            if (this.params.rate <= 0) return false;
+
+        if (this.params.size !== undefined)
+            if (this.params.size <= 0) return false;
+
+        return true;
     }
 
     purgeParticles(): void {

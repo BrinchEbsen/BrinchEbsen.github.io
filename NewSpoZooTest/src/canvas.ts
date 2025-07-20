@@ -1,5 +1,5 @@
 const CANVAS : HTMLCanvasElement = document.getElementById("canvas") as HTMLCanvasElement;
-const CTX : CanvasRenderingContext2D = CANVAS.getContext("2d")!;
+const CTX : CanvasRenderingContext2D = CANVAS.getContext("2d", { alpha: false })!;
 
 let CanvasMouseInside = false;
 const CanvasMousePos : Vec = {x: 0, y: 0};

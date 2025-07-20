@@ -12,6 +12,9 @@ function setupMenu(): void {
     SpoZooMenuInteractFunctions.set("fence", (ev: MouseEvent) => {
         game.currentInteractMode = InteractMode.Fence;
     });
+    SpoZooMenuInteractFunctions.set("grass", (ev: MouseEvent) => {
+        game.currentInteractMode = InteractMode.Grass;
+    });
 
     const interactMenuElements
         = document.querySelectorAll('#interactTypeButtons input[name=interactType]');
@@ -30,28 +33,28 @@ function setupMenu(): void {
 
     document.getElementById('widthIncrease')
         ?.addEventListener('click',(ev) => {
-            game.setDimentions(
+            game.setDimensions(
                 game.sceneTileWidth + 1,
                 game.sceneTileHeight
             );
     });
     document.getElementById('widthDecrease')
         ?.addEventListener('click',(ev) => {
-            game.setDimentions(
+            game.setDimensions(
                 game.sceneTileWidth - 1,
                 game.sceneTileHeight
             );
     });
     document.getElementById('heightIncrease')
         ?.addEventListener('click',(ev) => {
-            game.setDimentions(
+            game.setDimensions(
                 game.sceneTileWidth,
                 game.sceneTileHeight + 1
             );
     });
     document.getElementById('heightDecrease')
         ?.addEventListener('click',(ev) => {
-            game.setDimentions(
+            game.setDimensions(
                 game.sceneTileWidth,
                 game.sceneTileHeight - 1
             );

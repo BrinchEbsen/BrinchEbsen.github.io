@@ -13,6 +13,7 @@ type SpoZooScene = {
     removeSpos: boolean,
     spos: Spo[],
     fences: Fence[],
+    grass: Grass[],
     particles: Map<ParticleType, ParticleSys>
 };
 
@@ -24,7 +25,8 @@ type TileBuildState = {
 
 const enum InteractMode {
     Spos,
-    Fence
+    Fence,
+    Grass
 }
 
 class SpoZoo {
@@ -65,10 +67,11 @@ class SpoZoo {
             removeSpos: false,
             spos: [],
             fences: [],
+            grass: [],
             particles: new Map<ParticleType, ParticleSys>
         };
 
-        this.setDimentions(tileWidth, tileHeight);
+        this.setDimensions(tileWidth, tileHeight);
 
         this.createParticleSystems();
 
@@ -77,7 +80,7 @@ class SpoZoo {
         this.tileBuildState = {
             build: false,
             remove: false,
-            tileFlasher: new Flasher(0x10, 0x60, 6)
+            tileFlasher: new Flasher(0x10, 0xA0, 10)
         };
 
         this.mousePos = {x: 0, y: 0};
@@ -93,12 +96,17 @@ class SpoZoo {
     private createParticleSystems(): void {
         this.scene.particles.set(ParticleType.Sparkle,
             new ParticleSys(SparkleFrames, {
-                loop: false, lifespan: -1, rate: 0.25
+                loop: false,
+                rate: 0.25
             })
         );
         this.scene.particles.set(ParticleType.Sweat, 
             new ParticleSys([SweatDropFrame], {
-                loop: true, lifespan: 8, rate: 1, size: 0.5
+                loop: true,
+                lifespan: 8,
+                startFadeOut: 0,
+                rate: 1,
+                size: 0.5
             })
         );
     }
@@ -140,7 +148,10 @@ class SpoZoo {
         }
 
         const spo = new Spo(spoPos);
-        //spo.setType("gold"); //TEST
+        
+        const typeIndex = randomIntFromTo(0, SpoTypes.length);
+        spo.setType(SpoTypes[typeIndex]);
+
         this.scene.spos.push(spo);
     }
 
@@ -173,9 +184,14 @@ class SpoZoo {
         }
     }
 
-    public fenceAtTile(pos: Vec): number {
-        for (let i = 0; i < this.scene.fences.length; i++) {
-            const tilePos = this.scene.fences[i].tilePos;
+    public positionOutOfBounds(pos: Vec): boolean {
+        return (pos.x * TileSize) < 0 || (pos.x * TileSize) >= this.scene.width ||
+               (pos.y * TileSize) < 0 || (pos.y * TileSize) >= this.scene.height;
+    }
+
+    public objectAtTile(pos: Vec, array: TiledSprite[]): number {
+        for (let i = 0; i < array.length; i++) {
+            const tilePos = array[i].tilePos;
             if (tilePos.x == pos.x && tilePos.y == pos.y) {
                 return i;
             }
@@ -186,12 +202,10 @@ class SpoZoo {
 
     public setFenceAtTile(pos: Vec, fenceIndex: number | undefined = undefined) {
         if (!fenceIndex)
-            fenceIndex = this.fenceAtTile(pos);
+            fenceIndex = this.objectAtTile(pos, this.scene.fences);
 
         //Don't place if out of bounds.
-        if ((pos.x * TileSize) < 0 || (pos.x * TileSize) >= this.scene.width ||
-            (pos.y * TileSize) < 0 || (pos.y * TileSize) >= this.scene.height
-        ) { return; }
+        if (this.positionOutOfBounds(pos)) return;
 
         if (this.tileBuildState.build && fenceIndex < 0) {
             this.scene.fences.push(new Fence(vecCopy(pos)));
@@ -202,6 +216,20 @@ class SpoZoo {
         this.scene.fences.forEach(f => {
             f.updateNeighbors(this.scene);
         });
+    }
+
+    public setGrassAtTile(pos: Vec, grassIndex: number | undefined = undefined) {
+        if (!grassIndex)
+            grassIndex = this.objectAtTile(pos, this.scene.grass);
+
+        //Don't place if out of bounds.
+        if (this.positionOutOfBounds(pos)) return;
+
+        if (this.tileBuildState.build && grassIndex < 0) {
+            this.scene.grass.push(new Grass(vecCopy(pos)));
+        } else if (this.tileBuildState.remove && grassIndex >= 0) {
+            this.scene.grass.splice(grassIndex, 1);
+        }
     }
 
     public setFps(fps : number): void {
@@ -253,7 +281,7 @@ class SpoZoo {
         let valHex = val.toString(16);
         if (valHex.length === 1) valHex = '0'+valHex;
 
-        ctx.fillStyle = "#"+valHex+valHex+valHex;
+        ctx.fillStyle = "#"+valHex+valHex+valHex+valHex;
 
         let tileX = Math.floor(this.mousePos.x / TileSize);
         let tileY = Math.floor(this.mousePos.y / TileSize);
@@ -261,10 +289,34 @@ class SpoZoo {
         ctx.fillRect(tileX * TileSize, tileY * TileSize, TileSize, TileSize);
     }
 
-    public setDimentions(w: number, h: number): void {
-        if (w < this.scene.minTileWidth)  w = this.scene.minTileWidth;
+    private getMinimumAllowedSceneTileSize(): Rect {
+        const r = {
+            x: 0,
+            y: 0,
+            w: this.scene.minTileWidth,
+            h: this.scene.minTileHeight
+        }
+
+        let tileSprites: TiledSprite[] = [];
+        tileSprites = tileSprites.concat(this.scene.fences, this.scene.grass);
+
+        tileSprites.forEach(s => {
+            const tp = s.tilePos;
+
+            if (tp.x+1 > r.w) r.w = tp.x+1;
+            if (tp.y+1 > r.h) r.h = tp.y+1;
+        });
+
+        return r;
+    }
+
+    public setDimensions(w: number, h: number): void {
+        const minSize = this.getMinimumAllowedSceneTileSize();
+
+        if (w < minSize.w)  w = minSize.w;
         if (w > this.scene.maxTileWidth)  w = this.scene.maxTileWidth;
-        if (h < this.scene.minTileHeight) h = this.scene.minTileHeight;
+
+        if (h < minSize.h) h = minSize.h;
         if (h > this.scene.maxTileHeight) h = this.scene.maxTileHeight;
 
         this.scene.width  = w * TileSize;
@@ -308,8 +360,15 @@ class SpoZoo {
         ctx.fillStyle = "black";
         ctx.fillRect(0, 0, this.scene.width, this.scene.height);
 
-        if (this.currentInteractMode === InteractMode.Fence)
+        this.scene.grass.forEach(g => {
+            g.draw(ctx);
+        });
+
+        if (this.currentInteractMode === InteractMode.Fence ||
+            this.currentInteractMode === InteractMode.Grass
+        ) {
             this.drawFlashingTile(ctx);
+        }
 
         let sprites : Sprite[] = this.scene.spos;
         sprites = sprites.concat(this.scene.fences);
@@ -351,13 +410,25 @@ class SpoZoo {
     public mouseDown_Fence(mousePos: Vec): void {
         let tilePos = this.getMouseTilePos(this.mousePos);
 
-        const fenceIndex = this.fenceAtTile(tilePos);
+        const fenceIndex = this.objectAtTile(tilePos, this.scene.fences);
 
         //Build fence if no fence is there
         this.tileBuildState.build = fenceIndex < 0;
         this.tileBuildState.remove = fenceIndex >= 0;
 
         this.setFenceAtTile(tilePos, fenceIndex);
+    }
+
+    public mouseDown_Grass(mousePos: Vec): void {
+        let tilePos = this.getMouseTilePos(this.mousePos);
+
+        const grassIndex = this.objectAtTile(tilePos, this.scene.grass);
+
+        //Build fence if no fence is there
+        this.tileBuildState.build = grassIndex < 0;
+        this.tileBuildState.remove = grassIndex >= 0;
+
+        this.setGrassAtTile(tilePos, grassIndex);
     }
 
     public event_mousedown(mousePos: Vec): void {
@@ -368,19 +439,35 @@ class SpoZoo {
             case InteractMode.Fence:
                 this.mouseDown_Fence(mousePos);
                 break;
+            case InteractMode.Grass:
+                this.mouseDown_Grass(mousePos);
+                break;
         }
     }
 
-    public mouseMove_fence(mousePos: Vec) {
+    public mouseMove_Fence(mousePos: Vec) {
         if (!this.tileBuildState.build && !this.tileBuildState.remove) return;
 
         const tilePos = this.getMouseTilePos(mousePos);
 
-        const fenceIndex = this.fenceAtTile(tilePos);
+        const fenceIndex = this.objectAtTile(tilePos, this.scene.fences);
 
         this.setFenceAtTile(
             tilePos,
             fenceIndex
+        );
+    }
+
+    public mouseMove_Grass(mousePos: Vec): void {
+        if (!this.tileBuildState.build && !this.tileBuildState.remove) return;
+
+        const tilePos = this.getMouseTilePos(mousePos);
+
+        const grassIndex = this.objectAtTile(tilePos, this.scene.grass);
+
+        this.setGrassAtTile(
+            tilePos,
+            grassIndex
         );
     }
 
@@ -391,10 +478,17 @@ class SpoZoo {
             s.event_mousemove(mousePos);
         });
 
-        this.mouseMove_fence(mousePos);
+        switch(this.currentInteractMode) {
+            case InteractMode.Fence:
+                this.mouseMove_Fence(mousePos);
+                break;
+            case InteractMode.Grass:
+                this.mouseMove_Grass(mousePos);
+                break;
+        }
     }
 
-    public mouseUp_fence(mousePos: Vec) {
+    public mouseUp_Tiles(mousePos: Vec) {
         this.tileBuildState.build = false;
         this.tileBuildState.remove = false;
     }
@@ -404,8 +498,10 @@ class SpoZoo {
             s.event_mouseup(mousePos);
         });
 
-        if (this.currentInteractMode === InteractMode.Fence) {
-            this.mouseUp_fence(mousePos);
+        if (this.currentInteractMode === InteractMode.Fence ||
+            this.currentInteractMode === InteractMode.Grass
+        ) {
+            this.mouseUp_Tiles(mousePos);
         }
     }
 
