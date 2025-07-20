@@ -16,16 +16,17 @@ const SpoScatterFromMouseRange = 400;
 class Spo {
     constructor(pos, dir = { x: 0, y: 1 }, startState = 1) {
         this.target = { x: 0, y: 0 };
-        this.animations = new Map;
+        this.animations = new Map();
         this.timer = 0;
         this.despawn = false;
         this.requestDelete = false;
         this.pos = pos;
-        this.lastPos = vecCopy(this.pos);
         this.dir = dir;
         this.state = startState;
         this.type = "regular";
         this.speed = 2;
+        this.triedMoveLastFrame = false;
+        this.movedLastFrame = false;
         this.initAnimations();
     }
     initAnimations() {
@@ -79,8 +80,14 @@ class Spo {
     }
     randomDir() {
         const oneEighthAng = Math.PI / 4;
-        const ang = oneEighthAng * randomIntFromTo(0, 8) - Math.PI;
-        this.facingAngle = ang;
+        if (this.randDirBias === undefined) {
+            const ang = oneEighthAng * randomIntFromTo(0, 8) - Math.PI;
+            this.facingAngle = ang;
+        }
+        else {
+            this.dir = vecTurnByAngle(vecFromAngle(this.randDirBias), randomIntFromTo(-1, 1) * oneEighthAng);
+            this.randDirBias = undefined;
+        }
     }
     turn(left, amount = 1) {
         const oneEighthAng = Math.PI / 4;
@@ -96,10 +103,16 @@ class Spo {
         this.dir = vecFromAngle(ang);
     }
     turnByAng(ang) {
-        this.dir = {
-            x: Math.cos(ang) * this.dir.x - Math.sin(ang) * this.dir.y,
-            y: Math.sin(ang) * this.dir.x + Math.cos(ang) * this.dir.y,
-        };
+        this.dir = vecTurnByAngle(this.dir, ang);
+    }
+    inMovingState() {
+        switch (this.state) {
+            case 0:
+            case 4:
+            case 2:
+                return true;
+        }
+        return false;
     }
     takeStep(speedModif = 1) {
         const move = vecNormalize(this.dir);
@@ -239,6 +252,8 @@ class Spo {
         scene.fences.forEach(f => {
             const result = f.testCollision(this.anchorPos);
             if (result.hit) {
+                const pushDir = vecFromTo(this.anchorPos, result.newPos);
+                this.randDirBias = vecGetAngle(pushDir);
                 this.anchorPos = vecCopy(result.newPos);
             }
         });
@@ -248,10 +263,6 @@ class Spo {
     }
     shouldDoCollision() {
         return this.state != 5;
-    }
-    hasMovedThisFrame(tolerance = 0) {
-        const dist = vecDist(this.pos, this.lastPos);
-        return dist > tolerance;
     }
     spawnSparkleParticle(scene) {
         const sys = scene.particles.get(0);
@@ -295,11 +306,7 @@ class Spo {
             }
         }
     }
-    step(scene) {
-        if (this.requestDelete)
-            return;
-        this.lastPos.x = this.pos.x;
-        this.lastPos.y = this.pos.y;
+    handleState(scene) {
         switch (this.state) {
             case 0:
                 this.handleWalk();
@@ -317,6 +324,16 @@ class Spo {
                 this.handleWalkToPoint();
                 break;
         }
+    }
+    step(scene) {
+        if (this.requestDelete)
+            return;
+        if (this.triedMoveLastFrame && !this.movedLastFrame) {
+            this.makeStand();
+        }
+        const preFramePos = vecCopy(this.pos);
+        this.triedMoveLastFrame = this.inMovingState();
+        this.handleState(scene);
         if (this.shouldDoCollision())
             this.handleCollision(scene);
         if (scene.removeSpos) {
@@ -327,6 +344,7 @@ class Spo {
         else {
             this.wrapAtEdge(scene);
         }
+        this.movedLastFrame = vecDist(this.pos, preFramePos) > SpoHasntMovedTolerance;
         this.handleParticles(scene);
     }
     getAnimName() {

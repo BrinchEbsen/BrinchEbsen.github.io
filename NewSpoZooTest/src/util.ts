@@ -9,3 +9,13 @@ function getCheckedRadioElement(name: string): HTMLInputElement | undefined {
         if (e.checked) return e;
     }
 }
+
+function invertAngle(ang: number): number {
+    let inv = ang + Math.PI;
+    
+    if (inv > Math.PI) {
+      inv -= 2 * Math.PI;
+    }
+
+    return inv;
+}

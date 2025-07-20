@@ -28,7 +28,6 @@ const SpoScatterFromMouseRange = 400;
 
 class Spo implements Sprite {
     public pos: Vec;
-    public lastPos: Vec;
     public dir: Vec;
     public state: SpoState;
 
@@ -39,7 +38,12 @@ class Spo implements Sprite {
 
     public target: Vec = {x: 0, y: 0};
 
-    private animations = new Map<string, SpriteAnimation>;
+    public randDirBias: number | undefined;
+
+    public triedMoveLastFrame: boolean;
+    public movedLastFrame: boolean;
+
+    private animations = new Map<string, SpriteAnimation>();
 
     private timer: number = 0;
 
@@ -48,11 +52,12 @@ class Spo implements Sprite {
 
     constructor(pos: Vec, dir: Vec = {x: 0, y:1}, startState: SpoState = SpoState.Stand) {
         this.pos = pos;
-        this.lastPos = vecCopy(this.pos);
         this.dir = dir;
         this.state = startState;
         this.type = "regular";
         this.speed = 2;
+        this.triedMoveLastFrame = false;
+        this.movedLastFrame = false;
 
         this.initAnimations();
     }
@@ -121,9 +126,17 @@ class Spo implements Sprite {
     randomDir() : void {
         const oneEighthAng = Math.PI / 4;
 
-        const ang = oneEighthAng * randomIntFromTo(0, 8) - Math.PI;
+        if (this.randDirBias === undefined) {
+            const ang = oneEighthAng * randomIntFromTo(0, 8) - Math.PI;
+            this.facingAngle = ang;
+        } else {
+            this.dir = vecTurnByAngle(
+                vecFromAngle(this.randDirBias),
+                randomIntFromTo(-1, 1) * oneEighthAng
+            );
 
-        this.facingAngle = ang;
+            this.randDirBias = undefined;
+        }
     }
 
     turn(left : boolean, amount : number = 1) : void {
@@ -145,10 +158,18 @@ class Spo implements Sprite {
     }
 
     turnByAng(ang : number) {
-        this.dir = {
-            x: Math.cos(ang)*this.dir.x - Math.sin(ang)*this.dir.y,
-            y: Math.sin(ang)*this.dir.x + Math.cos(ang)*this.dir.y,
-        };
+        this.dir = vecTurnByAngle(this.dir, ang);
+    }
+
+    inMovingState(): boolean {
+        switch (this.state) {
+            case SpoState.Walk:
+            case SpoState.WalkToPoint:
+            case SpoState.Flee:
+                return true;
+        }
+
+        return false;
     }
 
     takeStep(speedModif : number = 1) : void {
@@ -328,6 +349,8 @@ class Spo implements Sprite {
         scene.fences.forEach(f => {
             const result = f.testCollision(this.anchorPos);
             if (result.hit) {
+                const pushDir = vecFromTo(this.anchorPos, result.newPos);
+                this.randDirBias = vecGetAngle(pushDir);
                 this.anchorPos = vecCopy(result.newPos);
             }
         });
@@ -339,11 +362,6 @@ class Spo implements Sprite {
 
     shouldDoCollision(): boolean {
         return this.state != SpoState.Grabbed;
-    }
-
-    hasMovedThisFrame(tolerance: number = 0): boolean {
-        const dist = vecDist(this.pos, this.lastPos);
-        return dist > tolerance;
     }
 
     spawnSparkleParticle(scene: SpoZooScene): void {
@@ -415,12 +433,7 @@ class Spo implements Sprite {
         }
     }
 
-    step(scene : SpoZooScene) : void {
-        if (this.requestDelete) return;
-
-        this.lastPos.x = this.pos.x;
-        this.lastPos.y = this.pos.y;
-
+    handleState(scene: SpoZooScene) {
         switch(this.state) {
             case SpoState.Walk:
                 this.handleWalk();
@@ -438,6 +451,19 @@ class Spo implements Sprite {
                 this.handleWalkToPoint();
                 break;
         }
+    }
+
+    step(scene: SpoZooScene) : void {
+        if (this.requestDelete) return;
+        
+        if (this.triedMoveLastFrame && !this.movedLastFrame) {
+            this.makeStand();
+        }
+
+        const preFramePos = vecCopy(this.pos);
+
+        this.triedMoveLastFrame = this.inMovingState();
+        this.handleState(scene);
 
         if (this.shouldDoCollision())
             this.handleCollision(scene);
@@ -449,6 +475,8 @@ class Spo implements Sprite {
         } else {
             this.wrapAtEdge(scene);
         }
+
+        this.movedLastFrame = vecDist(this.pos, preFramePos) > SpoHasntMovedTolerance;
 
         this.handleParticles(scene);
     }

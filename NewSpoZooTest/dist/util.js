@@ -9,3 +9,10 @@ function getCheckedRadioElement(name) {
             return e;
     }
 }
+function invertAngle(ang) {
+    let inv = ang + Math.PI;
+    if (inv > Math.PI) {
+        inv -= 2 * Math.PI;
+    }
+    return inv;
+}

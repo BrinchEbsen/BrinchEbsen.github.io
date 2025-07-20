@@ -75,3 +75,9 @@ function vecGetAngle(vec) {
         return 0;
     return Math.atan2(vec.x, vec.y);
 }
+function vecTurnByAngle(vec, ang) {
+    return {
+        x: Math.cos(ang) * vec.x - Math.sin(ang) * vec.y,
+        y: Math.sin(ang) * vec.x + Math.cos(ang) * vec.y,
+    };
+}
