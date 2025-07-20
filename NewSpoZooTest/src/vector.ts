@@ -49,6 +49,10 @@ function vecSub(vec1: Vec, vec2: Vec): Vec {
     };
 }
 
+function vecEquals(vec1: Vec, vec2: Vec): boolean {
+    return (vec1.x === vec2.x) && (vec1.y === vec2.y);
+}
+
 /**
  * Create vector from one vector to another.
  * @param vec1 Starting vector.

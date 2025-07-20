@@ -34,7 +34,7 @@ const SpoAnimInfoList : SpoAnimInfo[] = [
     {name: "walk_upleft",     rate: 0.5 , numFrames: 12}
 ] as const;
 
-const SpoAnimFrames = new Map<string, HTMLImageElement[]>;
+const SpoAnimFrames = new Map<string, HTMLImageElement[]>();
 
 function preloadSpoAnimFrames() : Promise<any> {
     const promises : Promise<any>[] = [];
@@ -80,7 +80,7 @@ const FenceFrameNames : string[] = [
     "fence_L"
 ] as const;
 
-const FenceFrames = new Map<string, HTMLImageElement>;
+const FenceFrames = new Map<string, HTMLImageElement>();
 
 function preloadFenceFrames() : Promise<any> {
     const promises : Promise<any>[] = [];
@@ -120,17 +120,29 @@ function preloadSparkleFrames() : Promise<any> {
     return Promise.all(promises);
 }
 
-let SweatDropFrame: HTMLImageElement;
+const MiscFrameNames = [
+    "sweat",
+    "grass",
+    "sand"
+];
 
-function preloadSweatDropFrame(): Promise<any> {
-    const img: HTMLImageElement = new Image();
-    img.src = `${AssetsFolder}/misc/sweat.png`;
+const MiscFrames = new Map<string, HTMLImageElement>();
 
-    SweatDropFrame = img;
+function preloadMiscFrames(): Promise<any> {
+    const promises : Promise<any>[] = [];
 
-    return new Promise(resolve => {
-        img.onload = resolve;
-    });
+    for (let i = 0; i < MiscFrameNames.length; i++) {
+        const img : HTMLImageElement = new Image();
+        const imgPath = `${AssetsFolder}/misc/${MiscFrameNames[i]}.png`;
+        img.src = imgPath;
+
+        MiscFrames.set(MiscFrameNames[i], img);
+        promises.push(new Promise(resolve => {
+            img.onload = resolve;
+        }));
+    }
+
+    return Promise.all(promises);
 }
 
 function preloadAllFrames() : Promise<any> {
@@ -138,6 +150,6 @@ function preloadAllFrames() : Promise<any> {
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
         preloadSparkleFrames(),
-        preloadSweatDropFrame()
+        preloadMiscFrames()
     ]);
 }

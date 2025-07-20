@@ -2,7 +2,7 @@ body {
     /*margin: 0;*/
     color: white;
     font-family: system-ui, sans-serif;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: bold;
     line-height: 1.1;
 
@@ -50,6 +50,12 @@ input[type=radio] {
     gap: 10px;
 }
 
+.menuDivider {
+    width: 5px;
+    background-color: rgb(70, 70, 70);
+    border-radius: 5px;
+}
+
 .squareButton {
     width: 30px;
     height: 30px;
@@ -61,6 +67,7 @@ button {
     border-style: solid;
     border-color: rgb(70, 70, 70);
     border-radius: 5px;
+    width: max-content;
 }
 
 button:hover {

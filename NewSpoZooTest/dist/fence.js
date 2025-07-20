@@ -30,69 +30,43 @@ class Fence extends TiledSprite {
         this.pos.x = val.x - 32;
         this.pos.y = val.y - 58;
     }
-    /**
-     * Test collision with the fence.
-     * @param pos Position to test.
-     * @returns A result with the new position after collision.
-     */
     testCollision(pos) {
-        //Set up the result with the case that nothing happened.
         const result = {
             hit: false, newPos: vecCopy(pos)
         };
-        //Relative position compared to the fence's origin
         const relPos = vecFromTo(this.pos, pos);
-        //Stop immediately if not within bounds of fence
         if (relPos.x < 0 || relPos.x > TileSize ||
             relPos.y < 0 || relPos.y > TileSize) {
             return result;
         }
-        //Keep a copy of the relative position for later
         const origRelPos = vecCopy(relPos);
-        //Shorter names for these variables :)
         const base = FenceBaseCollisionRect;
         const center = FenceBaseCollisionCenter;
-        //Direction from the base's center
         let pushDir = vecFromTo(center, relPos);
-        //Distance from center to position
         const posDistToCenter = vecLength(pushDir);
-        //How far outside the base the position is
         const posDistToCenterDiff = posDistToCenter - FenceBaseCollisionRadius;
-        //Whether the position is inside the fence
         const insideBase = posDistToCenterDiff < 0;
         const leftOfCenter = relPos.x < center.x;
         const aboveCenter = relPos.y < center.y;
-        //Try performing circular base collision first, depending on the neighboring walls.
         if (insideBase) {
-            if (
-            //No neighbor walls covering:
-            !(leftOfCenter && this.neighbors.L) && //Left side if left of center
-                !(!leftOfCenter && this.neighbors.R) && //Right side if right of center
-                !(aboveCenter && this.neighbors.U) && //Upper side if above center
-                !(!aboveCenter && this.neighbors.D) //Lower side if below center
-            ) {
-                //Now we know the position is inside the base, and not covered by any neighboring wall.
-                //Make a vector for how the position should be pushed to get out of the base.
+            if (!(leftOfCenter && this.neighbors.L) &&
+                !(!leftOfCenter && this.neighbors.R) &&
+                !(aboveCenter && this.neighbors.U) &&
+                !(!aboveCenter && this.neighbors.D)) {
                 pushDir = vecNormalize(pushDir, Math.abs(posDistToCenterDiff));
-                //Report that collision is done, add push.
                 result.hit = true;
                 relPos.x += pushDir.x;
                 relPos.y += pushDir.y;
             }
         }
-        //If the base didn't move the position, we now test the neighboring walls.
-        //(either purely vertical or horizontal pushing)
         if (!result.hit) {
-            //Horizontal walls (only adding comments to this one)
             if (this.neighbors.L || this.neighbors.R) {
-                //Use the base for the vertical components of the wall
                 const wallRect = {
                     x: 0,
                     y: base.y,
                     w: 0,
                     h: base.h
                 };
-                //Adjust wall rectangle based on the left/right neighbors
                 if (this.neighbors.L) {
                     wallRect.x = 0;
                 }
@@ -105,12 +79,10 @@ class Fence extends TiledSprite {
                 else {
                     wallRect.w = center.x;
                 }
-                //If the position is within the wall, perform a push.
                 if ((relPos.x >= wallRect.x) &&
                     (relPos.x <= wallRect.x + wallRect.w) &&
                     (relPos.y > wallRect.y) &&
                     (relPos.y < wallRect.y + wallRect.h)) {
-                    //Push either up or down.
                     if (aboveCenter) {
                         relPos.y = wallRect.y;
                     }
@@ -120,9 +92,6 @@ class Fence extends TiledSprite {
                     result.hit = true;
                 }
             }
-            //It's fine if both horizontal and vertical walls push the position.
-            //The pushes get combined and everything works out.
-            //Vertical walls (same as horizontal, but... vertical)
             if (this.neighbors.U || this.neighbors.D) {
                 const wallRect = {
                     x: base.x,
@@ -156,7 +125,6 @@ class Fence extends TiledSprite {
                 }
             }
         }
-        //If the position was moved, compute new absolute position for the result.
         if (result.hit) {
             const moveVec = vecFromTo(origRelPos, relPos);
             result.newPos = vecAdd(result.newPos, moveVec);

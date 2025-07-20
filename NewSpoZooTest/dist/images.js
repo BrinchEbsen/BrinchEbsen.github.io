@@ -24,7 +24,7 @@ const SpoAnimInfoList = [
     { name: "walk_left", rate: 0.5, numFrames: 12 },
     { name: "walk_upleft", rate: 0.5, numFrames: 12 }
 ];
-const SpoAnimFrames = new Map;
+const SpoAnimFrames = new Map();
 function preloadSpoAnimFrames() {
     const promises = [];
     SpoTypes.forEach(t => {
@@ -62,7 +62,7 @@ const FenceFrameNames = [
     "fence_DL",
     "fence_L"
 ];
-const FenceFrames = new Map;
+const FenceFrames = new Map();
 function preloadFenceFrames() {
     const promises = [];
     FenceFrameNames.forEach(name => {
@@ -91,20 +91,30 @@ function preloadSparkleFrames() {
     }
     return Promise.all(promises);
 }
-let SweatDropFrame;
-function preloadSweatDropFrame() {
-    const img = new Image();
-    img.src = `${AssetsFolder}/misc/sweat.png`;
-    SweatDropFrame = img;
-    return new Promise(resolve => {
-        img.onload = resolve;
-    });
+const MiscFrameNames = [
+    "sweat",
+    "grass",
+    "sand"
+];
+const MiscFrames = new Map();
+function preloadMiscFrames() {
+    const promises = [];
+    for (let i = 0; i < MiscFrameNames.length; i++) {
+        const img = new Image();
+        const imgPath = `${AssetsFolder}/misc/${MiscFrameNames[i]}.png`;
+        img.src = imgPath;
+        MiscFrames.set(MiscFrameNames[i], img);
+        promises.push(new Promise(resolve => {
+            img.onload = resolve;
+        }));
+    }
+    return Promise.all(promises);
 }
 function preloadAllFrames() {
     return Promise.all([
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
         preloadSparkleFrames(),
-        preloadSweatDropFrame()
+        preloadMiscFrames()
     ]);
 }

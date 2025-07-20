@@ -114,6 +114,10 @@ class Spo implements Sprite {
         this.initAnimations();
     }
 
+    getType(): SpoType {
+        return this.type;
+    }
+
     randomDir() : void {
         const oneEighthAng = Math.PI / 4;
 

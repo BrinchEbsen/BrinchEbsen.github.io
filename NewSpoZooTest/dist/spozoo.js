@@ -9,7 +9,7 @@ class SpoZoo {
         this.spoLimit = 1000;
         this.inDrawLoop = false;
         this.setFps(fps);
-        this.currentInteractMode = 0 /* InteractMode.Spos */;
+        this.currentInteractMode = 0;
         this.scene = {
             width: tileWidth * TileSize,
             height: tileHeight * TileSize,
@@ -21,7 +21,7 @@ class SpoZoo {
             spos: [],
             fences: [],
             grass: [],
-            particles: new Map
+            particles: new Map()
         };
         this.setDimensions(tileWidth, tileHeight);
         this.createParticleSystems();
@@ -29,7 +29,7 @@ class SpoZoo {
         this.tileBuildState = {
             build: false,
             remove: false,
-            tileFlasher: new Flasher(0x10, 0xA0, 10)
+            tileFlasher: new Flasher(0x10, 0x80, 6)
         };
         this.mousePos = { x: 0, y: 0 };
     }
@@ -40,11 +40,11 @@ class SpoZoo {
         return Math.floor(this.scene.height / TileSize);
     }
     createParticleSystems() {
-        this.scene.particles.set(0 /* ParticleType.Sparkle */, new ParticleSys(SparkleFrames, {
+        this.scene.particles.set(0, new ParticleSys(SparkleFrames, {
             loop: false,
             rate: 0.25
         }));
-        this.scene.particles.set(1 /* ParticleType.Sweat */, new ParticleSys([SweatDropFrame], {
+        this.scene.particles.set(1, new ParticleSys([MiscFrames.get("sweat")], {
             loop: true,
             lifespan: 8,
             startFadeOut: 0,
@@ -106,7 +106,7 @@ class SpoZoo {
             const spo = this.scene.spos[i];
             if (spo.requestDelete) {
                 this.scene.spos.splice(i, 1);
-                i--; //to account for array mutation
+                i--;
             }
         }
     }
@@ -126,7 +126,6 @@ class SpoZoo {
     setFenceAtTile(pos, fenceIndex = undefined) {
         if (!fenceIndex)
             fenceIndex = this.objectAtTile(pos, this.scene.fences);
-        //Don't place if out of bounds.
         if (this.positionOutOfBounds(pos))
             return;
         if (this.tileBuildState.build && fenceIndex < 0) {
@@ -142,7 +141,6 @@ class SpoZoo {
     setGrassAtTile(pos, grassIndex = undefined) {
         if (!grassIndex)
             grassIndex = this.objectAtTile(pos, this.scene.grass);
-        //Don't place if out of bounds.
         if (this.positionOutOfBounds(pos))
             return;
         if (this.tileBuildState.build && grassIndex < 0) {
@@ -170,21 +168,13 @@ class SpoZoo {
         this.inDrawLoop = false;
     }
     fitCanvas(canvas) {
-        //this.scene.width  = Math.max(window.innerWidth,  this.scene.minWidth);
-        //this.scene.height = Math.max(window.innerHeight, this.scene.minHeight);
-        //
-        //if ((this.scene.width  > window.innerWidth) ||
-        //    (this.scene.height > window.innerHeight))
-        //    setEnableScroll(true);
-        //else
-        //    setEnableScroll(false);
         canvas.width = this.scene.width;
         canvas.height = this.scene.height;
     }
-    getMouseTilePos(mousePos) {
+    getTilePos(vec) {
         return {
-            x: Math.floor(mousePos.x / TileSize),
-            y: Math.floor(mousePos.y / TileSize)
+            x: Math.floor(vec.x / TileSize),
+            y: Math.floor(vec.y / TileSize)
         };
     }
     drawFlashingTile(ctx) {
@@ -192,7 +182,7 @@ class SpoZoo {
         let valHex = val.toString(16);
         if (valHex.length === 1)
             valHex = '0' + valHex;
-        ctx.fillStyle = "#" + valHex + valHex + valHex + valHex;
+        ctx.fillStyle = "#FFFFFF" + valHex;
         let tileX = Math.floor(this.mousePos.x / TileSize);
         let tileY = Math.floor(this.mousePos.y / TileSize);
         ctx.fillRect(tileX * TileSize, tileY * TileSize, TileSize, TileSize);
@@ -228,6 +218,22 @@ class SpoZoo {
         this.scene.width = w * TileSize;
         this.scene.height = h * TileSize;
     }
+    drawBackground(ctx) {
+        if (this.backgroundDrawPattern === undefined) {
+            const frame = MiscFrames.get("sand");
+            if (frame !== undefined) {
+                const pat = ctx.createPattern(frame, "repeat");
+                if (pat !== null)
+                    this.backgroundDrawPattern = pat;
+            }
+        }
+        if (this.backgroundDrawPattern !== undefined) {
+            this.backgroundDrawPattern
+                .setTransform(new DOMMatrix([1, 0, 0, 1, 0, 0]));
+            ctx.fillStyle = this.backgroundDrawPattern;
+            ctx.fillRect(0, 0, this.scene.width, this.scene.height);
+        }
+    }
     drawLoop(canvas, ctx) {
         if (!this.inDrawLoop)
             return;
@@ -236,13 +242,10 @@ class SpoZoo {
             this.drawMsLast = this.drawMsCurr;
             this.fitCanvas(canvas);
             this.testAdjustSpoAmount();
-            //Purge spos to be deleted
             this.purgeSpos();
-            //Step spos
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
             });
-            //Step particle systems
             this.scene.particles.forEach(sys => {
                 sys.step();
             });
@@ -253,22 +256,20 @@ class SpoZoo {
         });
     }
     drawFrame(ctx) {
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, this.scene.width, this.scene.height);
+        this.drawBackground(ctx);
         this.scene.grass.forEach(g => {
             g.draw(ctx);
         });
-        if (this.currentInteractMode === 1 /* InteractMode.Fence */ ||
-            this.currentInteractMode === 2 /* InteractMode.Grass */) {
+        if (this.currentInteractMode === 1 ||
+            this.currentInteractMode === 2) {
             this.drawFlashingTile(ctx);
         }
         let sprites = this.scene.spos;
         sprites = sprites.concat(this.scene.fences);
         sprites.sort((a, b) => {
-            //Sort the grabbed spo above all other spos
             if (a instanceof Spo && b instanceof Spo) {
-                const aGrab = a.state === 5 /* SpoState.Grabbed */;
-                const bGrab = b.state === 5 /* SpoState.Grabbed */;
+                const aGrab = a.state === 5;
+                const bGrab = b.state === 5;
                 if (aGrab && !bGrab)
                     return 1;
                 if (!aGrab && bGrab)
@@ -290,35 +291,33 @@ class SpoZoo {
         let checkGrab = true;
         this.scene.spos.forEach(s => {
             s.event_mousedown(mousePos, checkGrab);
-            if (s.state === 5 /* SpoState.Grabbed */)
+            if (s.state === 5)
                 checkGrab = false;
         });
     }
     mouseDown_Fence(mousePos) {
-        let tilePos = this.getMouseTilePos(this.mousePos);
+        let tilePos = this.getTilePos(this.mousePos);
         const fenceIndex = this.objectAtTile(tilePos, this.scene.fences);
-        //Build fence if no fence is there
         this.tileBuildState.build = fenceIndex < 0;
         this.tileBuildState.remove = fenceIndex >= 0;
         this.setFenceAtTile(tilePos, fenceIndex);
     }
     mouseDown_Grass(mousePos) {
-        let tilePos = this.getMouseTilePos(this.mousePos);
+        let tilePos = this.getTilePos(this.mousePos);
         const grassIndex = this.objectAtTile(tilePos, this.scene.grass);
-        //Build fence if no fence is there
         this.tileBuildState.build = grassIndex < 0;
         this.tileBuildState.remove = grassIndex >= 0;
         this.setGrassAtTile(tilePos, grassIndex);
     }
     event_mousedown(mousePos) {
         switch (this.currentInteractMode) {
-            case 0 /* InteractMode.Spos */:
+            case 0:
                 this.mouseDown_Spos(mousePos);
                 break;
-            case 1 /* InteractMode.Fence */:
+            case 1:
                 this.mouseDown_Fence(mousePos);
                 break;
-            case 2 /* InteractMode.Grass */:
+            case 2:
                 this.mouseDown_Grass(mousePos);
                 break;
         }
@@ -326,14 +325,14 @@ class SpoZoo {
     mouseMove_Fence(mousePos) {
         if (!this.tileBuildState.build && !this.tileBuildState.remove)
             return;
-        const tilePos = this.getMouseTilePos(mousePos);
+        const tilePos = this.getTilePos(mousePos);
         const fenceIndex = this.objectAtTile(tilePos, this.scene.fences);
         this.setFenceAtTile(tilePos, fenceIndex);
     }
     mouseMove_Grass(mousePos) {
         if (!this.tileBuildState.build && !this.tileBuildState.remove)
             return;
-        const tilePos = this.getMouseTilePos(mousePos);
+        const tilePos = this.getTilePos(mousePos);
         const grassIndex = this.objectAtTile(tilePos, this.scene.grass);
         this.setGrassAtTile(tilePos, grassIndex);
     }
@@ -343,10 +342,10 @@ class SpoZoo {
             s.event_mousemove(mousePos);
         });
         switch (this.currentInteractMode) {
-            case 1 /* InteractMode.Fence */:
+            case 1:
                 this.mouseMove_Fence(mousePos);
                 break;
-            case 2 /* InteractMode.Grass */:
+            case 2:
                 this.mouseMove_Grass(mousePos);
                 break;
         }
@@ -359,8 +358,8 @@ class SpoZoo {
         this.scene.spos.forEach(s => {
             s.event_mouseup(mousePos);
         });
-        if (this.currentInteractMode === 1 /* InteractMode.Fence */ ||
-            this.currentInteractMode === 2 /* InteractMode.Grass */) {
+        if (this.currentInteractMode === 1 ||
+            this.currentInteractMode === 2) {
             this.mouseUp_Tiles(mousePos);
         }
     }
@@ -369,5 +368,53 @@ class SpoZoo {
     event_keyup(ev) {
     }
     event_keypress(ev) {
+    }
+    createSaveData() {
+        const saveData = createEmptySave();
+        saveData.sceneTileWidth = this.sceneTileWidth;
+        saveData.sceneTileHeight = this.sceneTileHeight;
+        for (let i = 0; i < this.scene.fences.length; i++) {
+            saveData.fencePositions.push(vecCopy(this.scene.fences[i].tilePos));
+        }
+        for (let i = 0; i < this.scene.grass.length; i++) {
+            saveData.grassPositions.push(vecCopy(this.scene.grass[i].tilePos));
+        }
+        this.scene.spos.forEach(s => {
+            const tilePos = this.getTilePos(s.anchorPos);
+            for (let i = 0; i < saveData.grassPositions.length; i++) {
+                const grassPos = saveData.grassPositions[i];
+                if (vecEquals(tilePos, grassPos)) {
+                    saveData.spos.push({
+                        pos: vecCopy(s.pos),
+                        type: s.getType()
+                    });
+                    break;
+                }
+            }
+        });
+        return saveData;
+    }
+    loadSaveData(saveData) {
+        this.scene.spos = [];
+        this.scene.fences = [];
+        this.scene.grass = [];
+        saveData.spos.forEach(s => {
+            const addSpo = new Spo(vecCopy(s.pos));
+            addSpo.setType(s.type);
+            addSpo.makeStand();
+            this.scene.spos.push(addSpo);
+        });
+        saveData.fencePositions.forEach(f => {
+            this.scene.fences.push(new Fence(vecCopy(f)));
+        });
+        this.scene.fences.forEach(f => {
+            f.updateNeighbors(this.scene);
+        });
+        saveData.grassPositions.forEach(g => {
+            this.scene.grass.push(new Grass(vecCopy(g)));
+        });
+        const minSize = this.getMinimumAllowedSceneTileSize();
+        this.scene.width = Math.max(minSize.w, saveData.sceneTileWidth) * TileSize;
+        this.scene.height = Math.max(minSize.h, saveData.sceneTileHeight) * TileSize;
     }
 }

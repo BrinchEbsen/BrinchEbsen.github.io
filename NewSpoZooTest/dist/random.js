@@ -1,8 +1,8 @@
 "use strict";
 function randomFromTo(from, to) {
-    let r = Math.random(); //from 0 to 1
-    r *= (to - from); //from 0 to range length
-    r += from; //from "from" to "to"
+    let r = Math.random();
+    r *= (to - from);
+    r += from;
     return r;
 }
 function randomIntFromTo(from, to) {

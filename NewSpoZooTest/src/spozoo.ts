@@ -37,6 +37,8 @@ class SpoZoo {
     private drawMsCurr: number = 0;
     private drawMsLast: number = 0;
 
+    private backgroundDrawPattern: CanvasPattern | undefined;
+
     public currentInteractMode: InteractMode;
     public scene: SpoZooScene;
 
@@ -68,7 +70,7 @@ class SpoZoo {
             spos: [],
             fences: [],
             grass: [],
-            particles: new Map<ParticleType, ParticleSys>
+            particles: new Map<ParticleType, ParticleSys>()
         };
 
         this.setDimensions(tileWidth, tileHeight);
@@ -80,7 +82,7 @@ class SpoZoo {
         this.tileBuildState = {
             build: false,
             remove: false,
-            tileFlasher: new Flasher(0x10, 0xA0, 10)
+            tileFlasher: new Flasher(0x10, 0x80, 6)
         };
 
         this.mousePos = {x: 0, y: 0};
@@ -101,7 +103,7 @@ class SpoZoo {
             })
         );
         this.scene.particles.set(ParticleType.Sweat, 
-            new ParticleSys([SweatDropFrame], {
+            new ParticleSys([MiscFrames.get("sweat")!], {
                 loop: true,
                 lifespan: 8,
                 startFadeOut: 0,
@@ -268,10 +270,10 @@ class SpoZoo {
         canvas.height = this.scene.height;
     }
 
-    private getMouseTilePos(mousePos: Vec): Vec {
+    private getTilePos(vec: Vec): Vec {
         return {
-            x: Math.floor(mousePos.x / TileSize),
-            y: Math.floor(mousePos.y / TileSize)
+            x: Math.floor(vec.x / TileSize),
+            y: Math.floor(vec.y / TileSize)
         };
     }
 
@@ -281,7 +283,7 @@ class SpoZoo {
         let valHex = val.toString(16);
         if (valHex.length === 1) valHex = '0'+valHex;
 
-        ctx.fillStyle = "#"+valHex+valHex+valHex+valHex;
+        ctx.fillStyle = "#FFFFFF"+valHex;
 
         let tileX = Math.floor(this.mousePos.x / TileSize);
         let tileY = Math.floor(this.mousePos.y / TileSize);
@@ -323,6 +325,25 @@ class SpoZoo {
         this.scene.height = h * TileSize;
     }
 
+    private drawBackground(ctx: CanvasRenderingContext2D): void {
+        if (this.backgroundDrawPattern === undefined) {
+            const frame = MiscFrames.get("sand");
+            if (frame !== undefined) {
+                const pat = ctx.createPattern(frame, "repeat");
+                if (pat !== null)
+                    this.backgroundDrawPattern = pat;
+            }
+        }
+
+        if (this.backgroundDrawPattern !== undefined) {
+            this.backgroundDrawPattern
+                .setTransform(new DOMMatrix([1, 0, 0, 1, 0, 0]));
+
+            ctx.fillStyle = this.backgroundDrawPattern;
+            ctx.fillRect(0, 0, this.scene.width, this.scene.height);
+        }
+    }
+
     private drawLoop(canvas : HTMLCanvasElement, ctx : CanvasRenderingContext2D): void {
         if (!this.inDrawLoop) return;
 
@@ -357,8 +378,9 @@ class SpoZoo {
     }
 
     private drawFrame(ctx : CanvasRenderingContext2D): void {
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, this.scene.width, this.scene.height);
+        //ctx.fillStyle = "black";
+        //ctx.fillRect(0, 0, this.scene.width, this.scene.height);
+        this.drawBackground(ctx);
 
         this.scene.grass.forEach(g => {
             g.draw(ctx);
@@ -408,7 +430,7 @@ class SpoZoo {
     }
 
     public mouseDown_Fence(mousePos: Vec): void {
-        let tilePos = this.getMouseTilePos(this.mousePos);
+        let tilePos = this.getTilePos(this.mousePos);
 
         const fenceIndex = this.objectAtTile(tilePos, this.scene.fences);
 
@@ -420,7 +442,7 @@ class SpoZoo {
     }
 
     public mouseDown_Grass(mousePos: Vec): void {
-        let tilePos = this.getMouseTilePos(this.mousePos);
+        let tilePos = this.getTilePos(this.mousePos);
 
         const grassIndex = this.objectAtTile(tilePos, this.scene.grass);
 
@@ -448,7 +470,7 @@ class SpoZoo {
     public mouseMove_Fence(mousePos: Vec) {
         if (!this.tileBuildState.build && !this.tileBuildState.remove) return;
 
-        const tilePos = this.getMouseTilePos(mousePos);
+        const tilePos = this.getTilePos(mousePos);
 
         const fenceIndex = this.objectAtTile(tilePos, this.scene.fences);
 
@@ -461,7 +483,7 @@ class SpoZoo {
     public mouseMove_Grass(mousePos: Vec): void {
         if (!this.tileBuildState.build && !this.tileBuildState.remove) return;
 
-        const tilePos = this.getMouseTilePos(mousePos);
+        const tilePos = this.getTilePos(mousePos);
 
         const grassIndex = this.objectAtTile(tilePos, this.scene.grass);
 
@@ -515,5 +537,75 @@ class SpoZoo {
 
     public event_keypress(ev: KeyboardEvent): void {
         
+    }
+
+    public createSaveData(): SaveData {
+        const saveData: SaveData = createEmptySave();
+        saveData.sceneTileWidth = this.sceneTileWidth;
+        saveData.sceneTileHeight = this.sceneTileHeight;
+
+        //Save the positions of grass and tiles
+        for (let i = 0; i < this.scene.fences.length; i++) {
+            saveData.fencePositions.push(
+                vecCopy(this.scene.fences[i].tilePos)
+            );
+        }
+
+        for (let i = 0; i < this.scene.grass.length; i++) {
+            saveData.grassPositions.push(
+                vecCopy(this.scene.grass[i].tilePos)
+            );
+        }
+
+        //Save spos if they are on a grass tile
+        this.scene.spos.forEach(s => {
+            const tilePos = this.getTilePos(s.anchorPos);
+
+            for (let i = 0; i < saveData.grassPositions.length; i++) {
+                const grassPos = saveData.grassPositions[i];
+
+                if (vecEquals(tilePos, grassPos)) {
+                    saveData.spos.push({
+                        pos: vecCopy(s.pos),
+                        type: s.getType()
+                    });
+                    break;
+                }
+            }
+        });
+
+        return saveData;
+    }
+
+    public loadSaveData(saveData: SaveData): void {
+        //Clear existing data
+        this.scene.spos = [];
+        this.scene.fences = [];
+        this.scene.grass = [];
+
+        saveData.spos.forEach(s => {
+            const addSpo = new Spo(vecCopy(s.pos));
+            addSpo.setType(s.type);
+            addSpo.makeStand();
+
+            this.scene.spos.push(addSpo);
+        });
+
+        saveData.fencePositions.forEach(f => {
+            this.scene.fences.push(new Fence(vecCopy(f)));
+        });
+
+        this.scene.fences.forEach(f => {
+            f.updateNeighbors(this.scene);
+        });
+
+        saveData.grassPositions.forEach(g => {
+            this.scene.grass.push(new Grass(vecCopy(g)));
+        });
+
+        const minSize = this.getMinimumAllowedSceneTileSize();
+
+        this.scene.width  = Math.max(minSize.w, saveData.sceneTileWidth)  * TileSize;
+        this.scene.height = Math.max(minSize.h, saveData.sceneTileHeight) * TileSize;
     }
 }

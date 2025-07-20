@@ -70,7 +70,6 @@ class Particle {
                 return;
             }
             if (this.sysParams.startFadeOut !== undefined) {
-                //Check if particle is fading out
                 if (this.lifetime >= this.sysParams.startFadeOut) {
                     const fadeDuration = this.sysParams.lifespan - this.sysParams.startFadeOut;
                     const currentDuration = this.lifetime - this.sysParams.startFadeOut;
@@ -103,7 +102,6 @@ class ParticleSys {
                     return false;
         }
         else {
-            //Can't start fading out if no end to timespan
             if (this.params.startFadeOut !== undefined)
                 return false;
         }
@@ -120,7 +118,7 @@ class ParticleSys {
             const particle = this.particles[i];
             if (particle.requestDelete) {
                 this.particles.splice(i, 1);
-                i--; //to account for mutated array
+                i--;
             }
         }
     }

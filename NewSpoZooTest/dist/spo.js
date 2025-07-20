@@ -14,7 +14,7 @@ const SpoGrabRange = 40;
 const SpoLookAtRange = 200;
 const SpoScatterFromMouseRange = 400;
 class Spo {
-    constructor(pos, dir = { x: 0, y: 1 }, startState = 1 /* SpoState.Stand */) {
+    constructor(pos, dir = { x: 0, y: 1 }, startState = 1) {
         this.target = { x: 0, y: 0 };
         this.animations = new Map;
         this.timer = 0;
@@ -74,6 +74,9 @@ class Spo {
         this.type = type;
         this.initAnimations();
     }
+    getType() {
+        return this.type;
+    }
     randomDir() {
         const oneEighthAng = Math.PI / 4;
         const ang = oneEighthAng * randomIntFromTo(0, 8) - Math.PI;
@@ -107,19 +110,19 @@ class Spo {
         if (!forFrames)
             forFrames = randomIntFromTo(10, 240);
         this.setTimer(forFrames);
-        this.state = 1 /* SpoState.Stand */;
+        this.state = 1;
     }
     makeWalk(forFrames = undefined) {
         if (!forFrames)
             forFrames = randomIntFromTo(10, 120);
         this.setTimer(forFrames);
-        this.state = 0 /* SpoState.Walk */;
+        this.state = 0;
     }
     makeFlee(forFrames = undefined) {
         if (!forFrames)
             forFrames = randomIntFromTo(180, 240);
         this.setTimer(forFrames);
-        this.state = 2 /* SpoState.Flee */;
+        this.state = 2;
     }
     makeWalkRandomDirection(forFrames = undefined) {
         this.randomDir();
@@ -127,20 +130,20 @@ class Spo {
     }
     makeWalkToPoint(point) {
         this.target = point;
-        this.state = 4 /* SpoState.WalkToPoint */;
+        this.state = 4;
     }
     makeSpin(forFrames = undefined) {
         if (!forFrames)
             forFrames = randomIntFromTo(32, 64);
         this.setTimer(forFrames);
-        this.state = 3 /* SpoState.Spin */;
+        this.state = 3;
     }
     makeGrabbed() {
-        this.state = 5 /* SpoState.Grabbed */;
+        this.state = 5;
     }
     allowScatter() {
-        return (this.state !== 2 /* SpoState.Flee */ &&
-            this.state !== 5 /* SpoState.Grabbed */);
+        return (this.state !== 2 &&
+            this.state !== 5);
     }
     wrapAtEdge(scene) {
         if (this.pos.x < -SpoFrameSize)
@@ -227,19 +230,17 @@ class Spo {
         });
     }
     shouldDoCollision() {
-        return this.state != 5 /* SpoState.Grabbed */;
+        return this.state != 5;
     }
     hasMovedThisFrame(tolerance = 0) {
         const dist = vecDist(this.pos, this.lastPos);
         return dist > tolerance;
     }
     spawnSparkleParticle(scene) {
-        const sys = scene.particles.get(0 /* ParticleType.Sparkle */);
+        const sys = scene.particles.get(0);
         if (!sys)
             return;
-        //Add a sparkle particle inside the spo's bounds box (plus a margin)
         sys.addParticleRange(this.pos.x + SpoBoundsBoxOffset.x + 20, this.pos.x + SpoBoundsBoxOffset.x + SpoBoundBoxSize - 20, this.pos.y + SpoBoundsBoxOffset.y + 20, this.pos.y + SpoBoundBoxSize + SpoBoundsBoxOffset.y - 20, {
-            //Slowly fly away from the spo's center
             flyAwayFrom: {
                 point: this.middlePos,
                 vel: 0.4
@@ -247,23 +248,18 @@ class Spo {
         });
     }
     spawnSweatParticle(scene) {
-        const sys = scene.particles.get(1 /* ParticleType.Sweat */);
+        const sys = scene.particles.get(1);
         if (!sys)
             return;
-        //Get a random position in an arc above the spo's head
         const randomVec = vecFromAngle(randomBool()
             ? randomFromTo(-Math.PI, (-Math.PI) / 2)
             : randomFromTo(Math.PI, Math.PI / 2), 30);
-        const particlePos = vecAdd(vecAdd(this.middlePos, randomVec), //This position plus the random arc position
-        { x: 0, y: -10 } //a bit above that
-        );
+        const particlePos = vecAdd(vecAdd(this.middlePos, randomVec), { x: 0, y: -10 });
         sys.addParticle(particlePos, {
-            //Be affected just a bit by gravity
             flyInDirection: {
                 vel: { x: 0, y: 0 },
                 acc: { x: 0, y: 0.15 }
             },
-            //Fly away from the spo
             flyAwayFrom: {
                 point: this.middlePos,
                 vel: 2
@@ -276,7 +272,7 @@ class Spo {
                 this.spawnSparkleParticle(scene);
             }
         }
-        if (this.state === 5 /* SpoState.Grabbed */) {
+        if (this.state === 5) {
             if (randomBool(SpoParticleSweatChance)) {
                 this.spawnSweatParticle(scene);
             }
@@ -288,19 +284,19 @@ class Spo {
         this.lastPos.x = this.pos.x;
         this.lastPos.y = this.pos.y;
         switch (this.state) {
-            case 0 /* SpoState.Walk */:
+            case 0:
                 this.handleWalk();
                 break;
-            case 1 /* SpoState.Stand */:
+            case 1:
                 this.handleStand();
                 break;
-            case 2 /* SpoState.Flee */:
+            case 2:
                 this.handleFlee();
                 break;
-            case 3 /* SpoState.Spin */:
+            case 3:
                 this.handleSpin();
                 break;
-            case 4 /* SpoState.WalkToPoint */:
+            case 4:
                 this.handleWalkToPoint();
                 break;
         }
@@ -319,14 +315,14 @@ class Spo {
     getAnimName() {
         let name = this.type + "_";
         switch (this.state) {
-            case 0 /* SpoState.Walk */:
-            case 2 /* SpoState.Flee */:
-            case 4 /* SpoState.WalkToPoint */:
-            case 5 /* SpoState.Grabbed */:
+            case 0:
+            case 2:
+            case 4:
+            case 5:
                 name += "walk_";
                 break;
-            case 1 /* SpoState.Stand */:
-            case 3 /* SpoState.Spin */:
+            case 1:
+            case 3:
                 name += "stand_";
                 break;
         }
@@ -343,10 +339,10 @@ class Spo {
         let rate = 1;
         let pos = vecCopy(this.pos);
         switch (this.state) {
-            case 2 /* SpoState.Flee */:
+            case 2:
                 rate = 2;
                 break;
-            case 5 /* SpoState.Grabbed */:
+            case 5:
                 rate = 4;
                 size = 1.5;
                 pos.x += randomFromTo(-2, 2);
@@ -357,7 +353,7 @@ class Spo {
     }
     event_mousedown(mousePos, checkGrab = false) {
         let gotGrabbed = false;
-        if (checkGrab && this.state !== 5 /* SpoState.Grabbed */) {
+        if (checkGrab && this.state !== 5) {
             const dist = vecDist(this.middlePos, mousePos);
             if (dist < SpoGrabRange) {
                 this.middlePos = vecCopy(mousePos);
@@ -368,7 +364,6 @@ class Spo {
         if (!gotGrabbed) {
             if (!this.allowScatter())
                 return;
-            //Scatter from the mouse click
             const vecDir = vecFromTo(mousePos, this.anchorPos);
             const dist = vecLength(vecDir);
             if (dist < SpoScatterFromMouseRange) {
@@ -378,10 +373,10 @@ class Spo {
         }
     }
     event_mousemove(mousePos) {
-        if (this.state === 5 /* SpoState.Grabbed */) {
+        if (this.state === 5) {
             this.middlePos = vecCopy(mousePos);
         }
-        else if (this.state === 1 /* SpoState.Stand */) {
+        else if (this.state === 1) {
             const dist = vecDist(this.middlePos, mousePos);
             if (dist < SpoLookAtRange) {
                 this.dir = vecFromTo(this.anchorPos, mousePos);
@@ -389,7 +384,7 @@ class Spo {
         }
     }
     event_mouseup(mousePos) {
-        if (this.state === 5 /* SpoState.Grabbed */) {
+        if (this.state === 5) {
             this.makeFlee();
         }
     }

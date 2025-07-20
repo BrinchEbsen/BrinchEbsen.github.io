@@ -1,5 +1,58 @@
 let game: SpoZoo;
 
+const SaveDataKey = "SPOZOO_SAVEGAME";
+
+function saveData() {
+    if (!game) return;
+    
+    try {
+        const save = game.createSaveData();
+
+        localStorage.setItem(SaveDataKey, JSON.stringify(save));
+    } catch(e) {
+        console.error(e);
+        if (e instanceof Error) {
+            alert(e.message);
+        }
+    }
+}
+
+function loadData(alertIfNone = true) {
+    if (!game) return;
+    
+    try {
+        const saveStr = localStorage.getItem(SaveDataKey);
+        if (saveStr != null) {
+            const save = JSON.parse(saveStr) as SaveData;
+            game.loadSaveData(save);
+        } else if (alertIfNone) {
+            alert("No save data to load!");
+        }
+    } catch(e) {
+        console.error(e);
+        if (e instanceof Error) {
+            alert(e.message);
+        }
+    }
+}
+
+function clearData() {
+    if (!game) return;
+    
+    if (!confirm("Are you sure you want to delete your save data?")) {
+        return;
+    }
+
+    try {
+        localStorage.removeItem(SaveDataKey);
+    } catch(e) {
+        console.error(e);
+        if (e instanceof Error) {
+            alert(e.message);
+        }
+    }
+}
+
 const SpoZooMenuInteractFunctions
     = new Map<string, (this: GlobalEventHandlers, ev: MouseEvent) => any>;
 
@@ -32,32 +85,46 @@ function setupMenu(): void {
     }
 
     document.getElementById('widthIncrease')
-        ?.addEventListener('click',(ev) => {
+        ?.addEventListener('click', (ev) => {
             game.setDimensions(
                 game.sceneTileWidth + 1,
                 game.sceneTileHeight
             );
     });
     document.getElementById('widthDecrease')
-        ?.addEventListener('click',(ev) => {
+        ?.addEventListener('click', (ev) => {
             game.setDimensions(
                 game.sceneTileWidth - 1,
                 game.sceneTileHeight
             );
     });
     document.getElementById('heightIncrease')
-        ?.addEventListener('click',(ev) => {
+        ?.addEventListener('click', (ev) => {
             game.setDimensions(
                 game.sceneTileWidth,
                 game.sceneTileHeight + 1
             );
     });
     document.getElementById('heightDecrease')
-        ?.addEventListener('click',(ev) => {
+        ?.addEventListener('click', (ev) => {
             game.setDimensions(
                 game.sceneTileWidth,
                 game.sceneTileHeight - 1
             );
+    });
+
+    document.getElementById('saveData')
+        ?.addEventListener('click', (e) => { saveData(); });
+
+    document.getElementById('loadData')
+        ?.addEventListener('click', (e) => { loadData(); });
+
+    document.getElementById('clearData')
+        ?.addEventListener('click', (e) => { clearData(); });
+
+    //Save the game before the page unloads
+    window.addEventListener('beforeunload', (e) => {
+        saveData();
     });
 }
 
@@ -98,6 +165,9 @@ function main() : void {
     setupMenu();
 
     game.startDrawLoop(CANVAS, CTX);
+
+    //Load save if present
+    loadData(false);
 }
 
 preloadAllFrames().then(main);
