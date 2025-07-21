@@ -10,7 +10,7 @@ const SpoParticleSweatChance = 0.2;
 const SpoFrameSize = 128;
 const SpoBoundsBoxOffset = { x: 32, y: 32 };
 const SpoBoundBoxSize = 64;
-const SpoGrabRange = 40;
+const SpoGrabRange = 30;
 const SpoLookAtRange = 200;
 const SpoScatterFromMouseRange = 400;
 class Spo {
@@ -154,6 +154,17 @@ class Spo {
     makeGrabbed() {
         this.state = 5;
     }
+    ateCarrot() {
+    }
+    testFeedCarrot(carrot, theZoo) {
+        const dist = vecDist(this.middlePos, carrot.middlePos);
+        if (dist < SpoBoundBoxSize / 2) {
+            this.ateCarrot();
+            theZoo.spawnGenericParticleEffect(this.middlePos, SpoBoundBoxSize / 2, 2);
+            return true;
+        }
+        return false;
+    }
     allowScatter() {
         return (this.state !== 2 &&
             this.state !== 5);
@@ -249,6 +260,9 @@ class Spo {
         }
     }
     handleCollision(scene) {
+        scene.spos.forEach(s => {
+            this.handleSpoCollision(s);
+        });
         scene.fences.forEach(f => {
             const result = f.testCollision(this.anchorPos);
             if (result.hit) {
@@ -256,9 +270,6 @@ class Spo {
                 this.randDirBias = vecGetAngle(pushDir);
                 this.anchorPos = vecCopy(result.newPos);
             }
-        });
-        scene.spos.forEach(s => {
-            this.handleSpoCollision(s);
         });
     }
     shouldDoCollision() {
@@ -386,7 +397,7 @@ class Spo {
         }
         anim.draw(ctx, pos, size, rate);
     }
-    event_mousedown(mousePos, checkGrab = false) {
+    event_mousedown(mousePos, checkGrab = false, checkSpook) {
         let gotGrabbed = false;
         if (checkGrab && this.state !== 5) {
             const dist = vecDist(this.middlePos, mousePos);
@@ -396,7 +407,7 @@ class Spo {
                 gotGrabbed = true;
             }
         }
-        if (!gotGrabbed) {
+        if (!gotGrabbed && checkSpook) {
             if (!this.allowScatter())
                 return;
             const vecDir = vecFromTo(mousePos, this.anchorPos);

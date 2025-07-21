@@ -21,6 +21,7 @@ class SpoZoo {
             maxTileHeight: 100,
             removeSpos: false,
             spos: [],
+            carrots: [],
             fences: [],
             grass: [],
             particles: new Map()
@@ -34,6 +35,7 @@ class SpoZoo {
             tileFlasher: new Flasher(0x10, 0x80, 6)
         };
         this.mousePos = { x: 0, y: 0 };
+        this.scene.carrots.push(new Carrot({ x: 100, y: 100 }, CarrotState.InGround));
     }
     get sceneTileWidth() {
         return Math.floor(this.scene.width / TileSize);
@@ -50,9 +52,29 @@ class SpoZoo {
             loop: true,
             lifespan: 8,
             startFadeOut: 0,
-            rate: 1,
             size: 0.5
         }));
+        this.scene.particles.set(2, new ParticleSys([MiscFrames.get("whitecircle")], {
+            loop: true,
+            lifespan: 8
+        }));
+    }
+    spawnGenericParticleEffect(pos, range, speed) {
+        const sys = this.scene.particles.get(2);
+        if (sys === undefined)
+            return;
+        const oneEighthAng = Math.PI / 4;
+        for (let i = 0; i < 8; i++) {
+            const ang = oneEighthAng * i - Math.PI;
+            const vecAng = vecFromAngle(ang);
+            const vecSpd = vecNormalize(vecAng, speed);
+            const vecPos = vecAdd(pos, vecNormalize(vecAng, range));
+            sys.addParticle(vecPos, {
+                flyInDirection: {
+                    vel: vecSpd
+                }
+            });
+        }
     }
     spoTargetDeviation() {
         const oneSpo = SpoBoundBoxSize * SpoBoundBoxSize;
@@ -108,6 +130,15 @@ class SpoZoo {
             const spo = this.scene.spos[i];
             if (spo.requestDelete) {
                 this.scene.spos.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    purgeCarrots() {
+        for (let i = 0; i < this.scene.carrots.length; i++) {
+            const carrot = this.scene.carrots[i];
+            if (carrot.requestDelete) {
+                this.scene.carrots.splice(i, 1);
                 i--;
             }
         }
@@ -245,6 +276,7 @@ class SpoZoo {
             this.fitCanvas(canvas);
             this.testAdjustSpoAmount();
             this.purgeSpos();
+            this.purgeCarrots();
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
             });
@@ -267,7 +299,7 @@ class SpoZoo {
             this.drawFlashingTile(ctx);
         }
         let sprites = this.scene.spos;
-        sprites = sprites.concat(this.scene.fences);
+        sprites = sprites.concat(this.scene.fences, this.scene.carrots);
         sprites.sort((a, b) => {
             if (a instanceof Spo && b instanceof Spo) {
                 const aGrab = a.state === 5;
@@ -289,10 +321,19 @@ class SpoZoo {
             sys.draw(ctx);
         });
     }
-    mouseDown_Spos(mousePos) {
+    mouseDown_Grab(mousePos) {
         let checkGrab = true;
+        let spookSpos = true;
+        this.scene.carrots.forEach(c => {
+            const prevState = c.state;
+            c.event_mouseDown(mousePos, this, checkGrab);
+            if (prevState != c.state) {
+                checkGrab = false;
+                spookSpos = false;
+            }
+        });
         this.scene.spos.forEach(s => {
-            s.event_mousedown(mousePos, checkGrab);
+            s.event_mousedown(mousePos, checkGrab, spookSpos);
             if (s.state === 5)
                 checkGrab = false;
         });
@@ -314,7 +355,7 @@ class SpoZoo {
     event_mousedown(mousePos) {
         switch (this.currentInteractMode) {
             case 0:
-                this.mouseDown_Spos(mousePos);
+                this.mouseDown_Grab(mousePos);
                 break;
             case 1:
                 this.mouseDown_Fence(mousePos);
@@ -340,6 +381,9 @@ class SpoZoo {
     }
     event_mousemove(mousePos) {
         this.mousePos = vecCopy(mousePos);
+        this.scene.carrots.forEach(c => {
+            c.event_mouseMove(mousePos);
+        });
         this.scene.spos.forEach(s => {
             s.event_mousemove(mousePos);
         });
@@ -357,6 +401,9 @@ class SpoZoo {
         this.tileBuildState.remove = false;
     }
     event_mouseup(mousePos) {
+        this.scene.carrots.forEach(c => {
+            c.event_mouseUp(mousePos, this);
+        });
         this.scene.spos.forEach(s => {
             s.event_mouseup(mousePos);
         });

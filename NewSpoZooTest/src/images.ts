@@ -120,10 +120,37 @@ function preloadSparkleFrames() : Promise<any> {
     return Promise.all(promises);
 }
 
+type CarrotFrameData = {
+    carrot?: HTMLImageElement,
+    carrotGround?: HTMLImageElement
+};
+
+const CarrotFrames: CarrotFrameData = {};
+
+function preloadCarrotFrames(): Promise<any> {
+    const imgCarrot = new Image();
+    imgCarrot.src = `${AssetsFolder}/carrot/carrot.png`;
+    CarrotFrames.carrot = imgCarrot;
+
+    const imgCarrotGround = new Image();
+    imgCarrotGround.src = `${AssetsFolder}/carrot/carrot_ground.png`;
+    CarrotFrames.carrotGround = imgCarrotGround;
+
+    return Promise.all([
+        new Promise(resolve => {
+            imgCarrot.onload = resolve;
+        }),
+        new Promise(resolve => {
+            imgCarrotGround.onload = resolve;
+        })
+    ]);
+}
+
 const MiscFrameNames = [
     "sweat",
     "grass",
-    "sand"
+    "sand",
+    "whitecircle"
 ];
 
 const MiscFrames = new Map<string, HTMLImageElement>();
@@ -145,11 +172,12 @@ function preloadMiscFrames(): Promise<any> {
     return Promise.all(promises);
 }
 
-function preloadAllFrames() : Promise<any> {
+function preloadAllFrames(): Promise<any> {
     return Promise.all([
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
         preloadSparkleFrames(),
+        preloadCarrotFrames(),
         preloadMiscFrames()
     ]);
 }

@@ -5,14 +5,10 @@ let CanvasMouseInside = false;
 const CanvasMousePos : Vec = {x: 0, y: 0};
 
 function updateCanvasMousePos(ev : MouseEvent) : void {
-    const bodyRect : DOMRect = document.body.getBoundingClientRect();
     const canvasRect : DOMRect = CANVAS.getBoundingClientRect();
-
-    const offsX = canvasRect.left - bodyRect.left;
-    const offsY = canvasRect.top  - bodyRect.top;
     
-    CanvasMousePos.x = ev.pageX - offsX;
-    CanvasMousePos.y = ev.pageY - offsY;
+    CanvasMousePos.x = ev.clientX - canvasRect.left;
+    CanvasMousePos.y = ev.clientY - canvasRect.top;
 
     CanvasMouseInside = (
         (CanvasMousePos.x >= 0) && (CanvasMousePos.x <= CANVAS.width) &&

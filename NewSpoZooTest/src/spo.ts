@@ -22,7 +22,7 @@ const SpoFrameSize = 128;
 const SpoBoundsBoxOffset: Vec = {x: 32, y: 32};
 const SpoBoundBoxSize = 64;
 
-const SpoGrabRange = 40;
+const SpoGrabRange = 30;
 const SpoLookAtRange = 200;
 const SpoScatterFromMouseRange = 400;
 
@@ -225,6 +225,22 @@ class Spo implements Sprite {
         this.state = SpoState.Grabbed;
     }
 
+    ateCarrot(): void {
+
+    }
+
+    testFeedCarrot(carrot: Carrot, theZoo: SpoZoo): boolean {
+        const dist = vecDist(this.middlePos, carrot.middlePos);
+
+        if (dist < SpoBoundBoxSize/2) {
+            this.ateCarrot();
+            theZoo.spawnGenericParticleEffect(this.middlePos, SpoBoundBoxSize/2, 2);
+            return true;
+        }
+
+        return false;
+    }
+
     allowScatter(): boolean {
         return (
             this.state !== SpoState.Flee &&
@@ -346,6 +362,10 @@ class Spo implements Sprite {
     }
 
     handleCollision(scene: SpoZooScene): void {
+        scene.spos.forEach(s => {
+            this.handleSpoCollision(s);
+        });
+
         scene.fences.forEach(f => {
             const result = f.testCollision(this.anchorPos);
             if (result.hit) {
@@ -353,10 +373,6 @@ class Spo implements Sprite {
                 this.randDirBias = vecGetAngle(pushDir);
                 this.anchorPos = vecCopy(result.newPos);
             }
-        });
-
-        scene.spos.forEach(s => {
-            this.handleSpoCollision(s);
         });
     }
 
@@ -529,7 +545,7 @@ class Spo implements Sprite {
         anim.draw(ctx, pos, size, rate);
     }
 
-    event_mousedown(mousePos: Vec, checkGrab: boolean = false): void {
+    event_mousedown(mousePos: Vec, checkGrab: boolean = false, checkSpook: boolean): void {
         let gotGrabbed = false;
         
         if (checkGrab && this.state !== SpoState.Grabbed) {
@@ -541,7 +557,7 @@ class Spo implements Sprite {
             }
         }
 
-        if (!gotGrabbed) {
+        if (!gotGrabbed && checkSpook) {
             if (!this.allowScatter()) return;
 
             //Scatter from the mouse click

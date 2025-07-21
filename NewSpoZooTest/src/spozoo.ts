@@ -1,6 +1,7 @@
 const enum ParticleType {
     Sparkle,
-    Sweat
+    Sweat,
+    Generic
 };
 
 type SpoZooScene = {
@@ -12,6 +13,7 @@ type SpoZooScene = {
     maxTileHeight: number,
     removeSpos: boolean,
     spos: Spo[],
+    carrots: Carrot[],
     fences: Fence[],
     grass: Grass[],
     particles: Map<ParticleType, ParticleSys>
@@ -24,7 +26,7 @@ type TileBuildState = {
 };
 
 const enum InteractMode {
-    Spos,
+    Grab,
     Fence,
     Grass
 }
@@ -58,7 +60,7 @@ class SpoZoo {
         this.inDrawLoop = false;
         this.setFps(fps);
 
-        this.currentInteractMode = InteractMode.Spos;
+        this.currentInteractMode = InteractMode.Grab;
 
         this.scene = {
             width: SpoZooMinTileWidth * TileSize,
@@ -69,6 +71,7 @@ class SpoZoo {
             maxTileHeight: 100,
             removeSpos: false,
             spos: [],
+            carrots: [],
             fences: [],
             grass: [],
             particles: new Map<ParticleType, ParticleSys>()
@@ -87,6 +90,8 @@ class SpoZoo {
         };
 
         this.mousePos = {x: 0, y: 0};
+
+        this.scene.carrots.push(new Carrot({x: 100, y: 100}, CarrotState.InGround));
     }
 
     get sceneTileWidth(): number {
@@ -108,10 +113,35 @@ class SpoZoo {
                 loop: true,
                 lifespan: 8,
                 startFadeOut: 0,
-                rate: 1,
                 size: 0.5
             })
         );
+        this.scene.particles.set(ParticleType.Generic,
+            new ParticleSys([MiscFrames.get("whitecircle")!], {
+                loop: true,
+                lifespan: 8
+            })
+        );
+    }
+
+    public spawnGenericParticleEffect(pos: Vec, range: number, speed: number) {
+        const sys = this.scene.particles.get(ParticleType.Generic);
+        if (sys === undefined) return;
+
+        const oneEighthAng = Math.PI/4;
+
+        for (let i = 0; i < 8; i++) {
+            const ang = oneEighthAng*i - Math.PI;
+            const vecAng = vecFromAngle(ang);
+            const vecSpd = vecNormalize(vecAng, speed);
+            const vecPos = vecAdd(pos, vecNormalize(vecAng, range));
+
+            sys.addParticle(vecPos, {
+                flyInDirection: {
+                    vel: vecSpd
+                }
+            });
+        }
     }
 
     public spoTargetDeviation(): number {
@@ -182,6 +212,17 @@ class SpoZoo {
 
             if (spo.requestDelete) {
                 this.scene.spos.splice(i, 1);
+                i--; //to account for array mutation
+            }
+        }
+    }
+
+    public purgeCarrots(): void {
+        for (let i = 0; i < this.scene.carrots.length; i++) {
+            const carrot = this.scene.carrots[i];
+
+            if (carrot.requestDelete) {
+                this.scene.carrots.splice(i, 1);
                 i--; //to account for array mutation
             }
         }
@@ -357,9 +398,10 @@ class SpoZoo {
 
             this.testAdjustSpoAmount();
 
-            //Purge spos to be deleted
+            //Purge stuff to be deleted
             this.purgeSpos();
-
+            this.purgeCarrots();
+            
             //Step spos
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
@@ -393,8 +435,8 @@ class SpoZoo {
             this.drawFlashingTile(ctx);
         }
 
-        let sprites : Sprite[] = this.scene.spos;
-        sprites = sprites.concat(this.scene.fences);
+        let sprites: Sprite[] = this.scene.spos;
+        sprites = sprites.concat(this.scene.fences, this.scene.carrots);
 
         sprites.sort((a : Sprite, b : Sprite) => {
             //Sort the grabbed spo above all other spos
@@ -419,11 +461,24 @@ class SpoZoo {
         })
     }
 
-    public mouseDown_Spos(mousePos: Vec): void {
+    public mouseDown_Grab(mousePos: Vec): void {
         let checkGrab = true;
+        let spookSpos = true;
+
+        this.scene.carrots.forEach(c => {
+            const prevState = c.state;
+
+            c.event_mouseDown(mousePos, this, checkGrab);
+
+            //Check if carrot got grabbed
+            if (prevState != c.state) {
+                checkGrab = false;
+                spookSpos = false; //If a carrot is grabbed, we don't wanna spook em
+            }
+        });
 
         this.scene.spos.forEach(s => {
-            s.event_mousedown(mousePos, checkGrab);
+            s.event_mousedown(mousePos, checkGrab, spookSpos);
 
             if (s.state === SpoState.Grabbed)
                 checkGrab = false;
@@ -456,8 +511,8 @@ class SpoZoo {
 
     public event_mousedown(mousePos: Vec): void {
         switch (this.currentInteractMode) {
-            case InteractMode.Spos:
-                this.mouseDown_Spos(mousePos);
+            case InteractMode.Grab:
+                this.mouseDown_Grab(mousePos);
                 break;
             case InteractMode.Fence:
                 this.mouseDown_Fence(mousePos);
@@ -497,6 +552,10 @@ class SpoZoo {
     public event_mousemove(mousePos: Vec): void {
         this.mousePos = vecCopy(mousePos);
 
+        this.scene.carrots.forEach(c => {
+            c.event_mouseMove(mousePos);
+        });
+
         this.scene.spos.forEach(s => {
             s.event_mousemove(mousePos);
         });
@@ -517,6 +576,10 @@ class SpoZoo {
     }
 
     public event_mouseup(mousePos: Vec): void {
+        this.scene.carrots.forEach(c => {
+            c.event_mouseUp(mousePos, this);
+        });
+
         this.scene.spos.forEach(s => {
             s.event_mouseup(mousePos);
         });

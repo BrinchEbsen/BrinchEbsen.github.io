@@ -57,7 +57,7 @@ function setupMenu() {
     var _a, _b, _c, _d, _e, _f, _g;
     if (!game)
         return;
-    SpoZooMenuInteractFunctions.set("spos", (ev) => {
+    SpoZooMenuInteractFunctions.set("grab", (ev) => {
         game.currentInteractMode = 0;
     });
     SpoZooMenuInteractFunctions.set("fence", (ev) => {
@@ -69,7 +69,7 @@ function setupMenu() {
     const interactMenuElements = document.querySelectorAll('#interactTypeButtons input[name=interactType]');
     for (let i = 0; i < interactMenuElements.length; i++) {
         const item = interactMenuElements[i];
-        if (item.id === "spos")
+        if (item.id === "grab")
             item.checked = true;
         const func = SpoZooMenuInteractFunctions.get(item.id);
         if (func)

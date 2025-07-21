@@ -91,10 +91,28 @@ function preloadSparkleFrames() {
     }
     return Promise.all(promises);
 }
+const CarrotFrames = {};
+function preloadCarrotFrames() {
+    const imgCarrot = new Image();
+    imgCarrot.src = `${AssetsFolder}/carrot/carrot.png`;
+    CarrotFrames.carrot = imgCarrot;
+    const imgCarrotGround = new Image();
+    imgCarrotGround.src = `${AssetsFolder}/carrot/carrot_ground.png`;
+    CarrotFrames.carrotGround = imgCarrotGround;
+    return Promise.all([
+        new Promise(resolve => {
+            imgCarrot.onload = resolve;
+        }),
+        new Promise(resolve => {
+            imgCarrotGround.onload = resolve;
+        })
+    ]);
+}
 const MiscFrameNames = [
     "sweat",
     "grass",
-    "sand"
+    "sand",
+    "whitecircle"
 ];
 const MiscFrames = new Map();
 function preloadMiscFrames() {
@@ -115,6 +133,7 @@ function preloadAllFrames() {
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
         preloadSparkleFrames(),
+        preloadCarrotFrames(),
         preloadMiscFrames()
     ]);
 }

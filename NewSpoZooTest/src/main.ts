@@ -60,8 +60,8 @@ const SpoZooMenuInteractFunctions
 function setupMenu(): void {
     if (!game) return;
 
-    SpoZooMenuInteractFunctions.set("spos", (ev: MouseEvent) => {
-        game.currentInteractMode = InteractMode.Spos;
+    SpoZooMenuInteractFunctions.set("grab", (ev: MouseEvent) => {
+        game.currentInteractMode = InteractMode.Grab;
     });
     SpoZooMenuInteractFunctions.set("fence", (ev: MouseEvent) => {
         game.currentInteractMode = InteractMode.Fence;
@@ -76,8 +76,8 @@ function setupMenu(): void {
     for (let i = 0; i < interactMenuElements.length; i++) {
         const item = interactMenuElements[i] as HTMLInputElement;
 
-        //Make the spos option selected by default
-        if (item.id === "spos")
+        //Make the grab option selected by default
+        if (item.id === "grab")
             item.checked = true;
 
         //Add the event handler to the radio button's onclick
