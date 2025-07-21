@@ -3,6 +3,7 @@
 const SpoWalkBackInBoundsBuffer = 40;
 const SpoBiasTowardMiddleBuffer = 60;
 const SpoHasntMovedTolerance = 0.1;
+const SpoGoldenChance = 1 / 100;
 const SpoSpinChance = 0.002;
 const SpoFleeRandomTurnChance = 0.1;
 const SpoParticleSparkleChance = 0.03;
@@ -155,6 +156,16 @@ class Spo {
         this.state = 5;
     }
     ateCarrot() {
+        if (randomBool(SpoGoldenChance) && this.type !== "gold") {
+            this.setType("gold");
+        }
+        else {
+            const possibleTypes = SpoTypes.filter(t => {
+                return t !== this.type && t !== "gold";
+            });
+            const newType = possibleTypes[randomIntFromTo(0, possibleTypes.length)];
+            this.setType(newType);
+        }
     }
     testFeedCarrot(carrot, theZoo) {
         const dist = vecDist(this.middlePos, carrot.middlePos);

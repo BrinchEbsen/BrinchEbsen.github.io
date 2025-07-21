@@ -4,6 +4,8 @@ enum CarrotState {
     Grabbed
 };
 
+const CarrotFrameSize = 32;
+
 class Carrot implements Sprite {
     pos: Vec;
     state: CarrotState;
@@ -37,6 +39,14 @@ class Carrot implements Sprite {
     set middlePos(val: Vec) {
         this.pos.x = val.x - 16;
         this.pos.y = val.y - 16;
+    }
+
+    step(scene: SpoZooScene): void {
+        if ((this.pos.x + CarrotFrameSize < 0) || (this.pos.x > scene.width) ||
+            (this.pos.y + CarrotFrameSize < 0) || (this.pos.y > scene.height))
+        {
+            this.requestDelete = true;
+        }
     }
 
     draw(ctx: CanvasRenderingContext2D): void {

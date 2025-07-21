@@ -34,6 +34,8 @@ const enum InteractMode {
 const SpoZooMinTileWidth = 4;
 const SpoZooMinTileHeight = 4;
 
+const CarrotSpawnChance = 0.003;
+
 class SpoZoo {
     private inDrawLoop: boolean;
     public fps: number = 0;
@@ -90,8 +92,6 @@ class SpoZoo {
         };
 
         this.mousePos = {x: 0, y: 0};
-
-        this.scene.carrots.push(new Carrot({x: 100, y: 100}, CarrotState.InGround));
     }
 
     get sceneTileWidth(): number {
@@ -182,10 +182,22 @@ class SpoZoo {
 
         const spo = new Spo(spoPos);
         
-        const typeIndex = randomIntFromTo(0, SpoTypes.length);
-        spo.setType(SpoTypes[typeIndex]);
+        //const typeIndex = randomIntFromTo(0, SpoTypes.length);
+        //spo.setType(SpoTypes[typeIndex]);
 
         this.scene.spos.push(spo);
+    }
+
+    public spawnCarrot(): void {
+        const limit = (this.sceneTileWidth * this.sceneTileHeight) / 4;
+        if (this.scene.carrots.length >= limit) return;
+
+        const pos: Vec = {
+            x: randomFromTo(0 + TileSize/2, this.scene.width  - TileSize/2),
+            y: randomFromTo(0 + TileSize/2, this.scene.height - TileSize/2)
+        };
+
+        this.scene.carrots.push(new Carrot(pos, CarrotState.InGround));
     }
 
     public setRandomSpoForDespawn(): void {
@@ -401,10 +413,18 @@ class SpoZoo {
             //Purge stuff to be deleted
             this.purgeSpos();
             this.purgeCarrots();
+
+            if (randomBool(CarrotSpawnChance))
+                this.spawnCarrot();
             
             //Step spos
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
+            });
+
+            //Step carrots
+            this.scene.carrots.forEach(c => {
+                c.step(this.scene);
             });
 
             //Step particle systems
@@ -644,6 +664,7 @@ class SpoZoo {
     public loadSaveData(saveData: SaveData): void {
         //Clear existing data
         this.scene.spos = [];
+        this.scene.carrots = [];
         this.scene.fences = [];
         this.scene.grass = [];
 

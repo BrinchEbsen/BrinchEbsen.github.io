@@ -12,6 +12,7 @@ const SpoBiasTowardMiddleBuffer = 60;
 
 const SpoHasntMovedTolerance = 0.1;
 
+const SpoGoldenChance = 1/100;
 const SpoSpinChance = 0.002;
 const SpoFleeRandomTurnChance = 0.1;
 
@@ -226,7 +227,19 @@ class Spo implements Sprite {
     }
 
     ateCarrot(): void {
+        if (randomBool(SpoGoldenChance) && this.type !== "gold") {
+            this.setType("gold");
+        } else {
+            const possibleTypes = SpoTypes.filter(t => {
+                return t !== this.type && t !== "gold"
+            });
 
+            const newType = possibleTypes[
+                randomIntFromTo(0, possibleTypes.length)
+            ] as SpoType;
+
+            this.setType(newType);
+        }
     }
 
     testFeedCarrot(carrot: Carrot, theZoo: SpoZoo): boolean {

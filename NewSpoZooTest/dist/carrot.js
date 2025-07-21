@@ -6,6 +6,7 @@ var CarrotState;
     CarrotState[CarrotState["Grabbed"] = 2] = "Grabbed";
 })(CarrotState || (CarrotState = {}));
 ;
+const CarrotFrameSize = 32;
 class Carrot {
     constructor(pos, state) {
         this.pos = pos;
@@ -31,6 +32,12 @@ class Carrot {
     set middlePos(val) {
         this.pos.x = val.x - 16;
         this.pos.y = val.y - 16;
+    }
+    step(scene) {
+        if ((this.pos.x + CarrotFrameSize < 0) || (this.pos.x > scene.width) ||
+            (this.pos.y + CarrotFrameSize < 0) || (this.pos.y > scene.height)) {
+            this.requestDelete = true;
+        }
     }
     draw(ctx) {
         let frame;

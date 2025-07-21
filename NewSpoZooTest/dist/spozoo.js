@@ -2,6 +2,7 @@
 ;
 const SpoZooMinTileWidth = 4;
 const SpoZooMinTileHeight = 4;
+const CarrotSpawnChance = 0.003;
 class SpoZoo {
     constructor(fps = 60) {
         this.fps = 0;
@@ -35,7 +36,6 @@ class SpoZoo {
             tileFlasher: new Flasher(0x10, 0x80, 6)
         };
         this.mousePos = { x: 0, y: 0 };
-        this.scene.carrots.push(new Carrot({ x: 100, y: 100 }, CarrotState.InGround));
     }
     get sceneTileWidth() {
         return Math.floor(this.scene.width / TileSize);
@@ -107,9 +107,17 @@ class SpoZoo {
             };
         }
         const spo = new Spo(spoPos);
-        const typeIndex = randomIntFromTo(0, SpoTypes.length);
-        spo.setType(SpoTypes[typeIndex]);
         this.scene.spos.push(spo);
+    }
+    spawnCarrot() {
+        const limit = (this.sceneTileWidth * this.sceneTileHeight) / 4;
+        if (this.scene.carrots.length >= limit)
+            return;
+        const pos = {
+            x: randomFromTo(0 + TileSize / 2, this.scene.width - TileSize / 2),
+            y: randomFromTo(0 + TileSize / 2, this.scene.height - TileSize / 2)
+        };
+        this.scene.carrots.push(new Carrot(pos, CarrotState.InGround));
     }
     setRandomSpoForDespawn() {
         for (let i = 0; i < this.scene.spos.length; i++) {
@@ -277,8 +285,13 @@ class SpoZoo {
             this.testAdjustSpoAmount();
             this.purgeSpos();
             this.purgeCarrots();
+            if (randomBool(CarrotSpawnChance))
+                this.spawnCarrot();
             this.scene.spos.forEach(s => {
                 s.step(this.scene);
+            });
+            this.scene.carrots.forEach(c => {
+                c.step(this.scene);
             });
             this.scene.particles.forEach(sys => {
                 sys.step();
@@ -445,6 +458,7 @@ class SpoZoo {
     }
     loadSaveData(saveData) {
         this.scene.spos = [];
+        this.scene.carrots = [];
         this.scene.fences = [];
         this.scene.grass = [];
         saveData.spos.forEach(s => {
