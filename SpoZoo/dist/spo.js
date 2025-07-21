@@ -3,7 +3,7 @@
 const SpoWalkBackInBoundsBuffer = 40;
 const SpoBiasTowardMiddleBuffer = 60;
 const SpoHasntMovedTolerance = 0.1;
-const SpoGoldenChance = 1 / 100;
+const SpoGoldenChance = 1 / 50;
 const SpoSpinChance = 0.002;
 const SpoFleeRandomTurnChance = 0.1;
 const SpoParticleSparkleChance = 0.03;
@@ -257,6 +257,8 @@ class Spo {
             this.makeStand();
     }
     handleSpoCollision(other) {
+        if (other.state === 5)
+            return;
         if ((this.pos.x + SpoBoundBoxSize < other.pos.x) ||
             (this.pos.x - SpoBoundBoxSize > other.pos.x) ||
             (this.pos.y + SpoBoundBoxSize < other.pos.y) ||
@@ -383,7 +385,10 @@ class Spo {
                 name += "stand_";
                 break;
         }
-        name += vecDirectionName(this.dir);
+        let dirName = vecDirectionName(this.dir);
+        if (dirName === "none")
+            dirName = "down";
+        name += dirName;
         return name;
     }
     draw(ctx) {

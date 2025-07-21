@@ -12,7 +12,7 @@ const SpoBiasTowardMiddleBuffer = 60;
 
 const SpoHasntMovedTolerance = 0.1;
 
-const SpoGoldenChance = 1/100;
+const SpoGoldenChance = 1/50;
 const SpoSpinChance = 0.002;
 const SpoFleeRandomTurnChance = 0.1;
 
@@ -355,6 +355,8 @@ class Spo implements Sprite {
     }
 
     handleSpoCollision(other: Spo): void {
+        if (other.state === SpoState.Grabbed) return;
+
         //Quick rough check before any heavy calculations
         if (
             (this.pos.x + SpoBoundBoxSize < other.pos.x) ||
@@ -526,7 +528,9 @@ class Spo implements Sprite {
                 break;
         }
 
-        name += vecDirectionName(this.dir);
+        let dirName = vecDirectionName(this.dir);
+        if (dirName === "none") dirName = "down";
+        name += dirName;
 
         return name;
     }
