@@ -4,7 +4,9 @@ const SpoTypes = [
     "regular",
     "gold",
     "void",
-    "ember"
+    "ember",
+    "flame",
+    "cynder"
 ];
 const SpoAnimInfoList = [
     { name: "stand_up", rate: 0.25, numFrames: 12 },
@@ -91,6 +93,21 @@ function preloadSparkleFrames() {
     }
     return Promise.all(promises);
 }
+const NumWispFrames = 5;
+const WispFrames = [];
+function preloadWispFrames() {
+    const promises = [];
+    for (let i = 0; i < NumWispFrames; i++) {
+        const img = new Image();
+        const imgPath = `${AssetsFolder}/wisp/${i}.png`;
+        img.src = imgPath;
+        WispFrames.push(img);
+        promises.push(new Promise(resolve => {
+            img.onload = resolve;
+        }));
+    }
+    return Promise.all(promises);
+}
 const CarrotFrames = {};
 function preloadCarrotFrames() {
     const imgCarrot = new Image();
@@ -133,6 +150,7 @@ function preloadAllFrames() {
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
         preloadSparkleFrames(),
+        preloadWispFrames(),
         preloadCarrotFrames(),
         preloadMiscFrames()
     ]);

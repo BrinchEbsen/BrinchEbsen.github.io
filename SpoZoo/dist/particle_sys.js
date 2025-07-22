@@ -69,6 +69,13 @@ class Particle {
                 this.requestDelete = true;
                 return;
             }
+            if (this.sysParams.endFadeIn !== undefined) {
+                if (this.lifetime < this.sysParams.endFadeIn) {
+                    const fadeDuration = this.sysParams.endFadeIn;
+                    const currentDuration = this.lifetime;
+                    ctx.globalAlpha = currentDuration / fadeDuration;
+                }
+            }
             if (this.sysParams.startFadeOut !== undefined) {
                 if (this.lifetime >= this.sysParams.startFadeOut) {
                     const fadeDuration = this.sysParams.lifespan - this.sysParams.startFadeOut;
@@ -104,6 +111,14 @@ class ParticleSys {
         else {
             if (this.params.startFadeOut !== undefined)
                 return false;
+        }
+        if (this.params.endFadeIn !== undefined) {
+            if (this.params.endFadeIn <= 0)
+                return false;
+            if (this.params.startFadeOut !== undefined) {
+                if (this.params.startFadeOut < this.params.endFadeIn)
+                    return false;
+            }
         }
         if (this.params.rate !== undefined)
             if (this.params.rate <= 0)

@@ -10,7 +10,9 @@ const SpoTypes = [
     "regular",
     "gold",
     "void",
-    "ember"
+    "ember",
+    "flame",
+    "cynder"
 ] as const;
 
 type SpoType = typeof SpoTypes[number];
@@ -120,6 +122,27 @@ function preloadSparkleFrames() : Promise<any> {
     return Promise.all(promises);
 }
 
+const NumWispFrames = 5;
+
+const WispFrames: HTMLImageElement[] = [];
+
+function preloadWispFrames() : Promise<any> {
+    const promises : Promise<any>[] = [];
+
+    for (let i = 0; i < NumWispFrames; i++) {
+        const img : HTMLImageElement = new Image();
+        const imgPath = `${AssetsFolder}/wisp/${i}.png`;
+        img.src = imgPath;
+
+        WispFrames.push(img);
+        promises.push(new Promise(resolve => {
+            img.onload = resolve;
+        }));
+    }
+
+    return Promise.all(promises);
+}
+
 type CarrotFrameData = {
     carrot?: HTMLImageElement,
     carrotGround?: HTMLImageElement
@@ -177,6 +200,7 @@ function preloadAllFrames(): Promise<any> {
         preloadSpoAnimFrames(),
         preloadFenceFrames(),
         preloadSparkleFrames(),
+        preloadWispFrames(),
         preloadCarrotFrames(),
         preloadMiscFrames()
     ]);

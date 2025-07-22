@@ -15,6 +15,7 @@ type PointVelAcc = {
 type ParticleSysParams = {
     loop?: boolean,
     lifespan?: number,
+    endFadeIn?: number,
     startFadeOut?: number,
     rate?: number,
     size?: number
@@ -139,6 +140,16 @@ class Particle implements Sprite {
                 return;
             }
 
+            if (this.sysParams.endFadeIn !== undefined) {
+                //Check if particle is fading in
+                if (this.lifetime < this.sysParams.endFadeIn) {
+                    const fadeDuration = this.sysParams.endFadeIn;
+                    const currentDuration = this.lifetime;
+
+                    ctx.globalAlpha = currentDuration / fadeDuration;
+                }
+            }
+
             if (this.sysParams.startFadeOut !== undefined) {
                 //Check if particle is fading out
                 if (this.lifetime >= this.sysParams.startFadeOut) {
@@ -185,6 +196,15 @@ class ParticleSys {
         } else {
             //Can't start fading out if no end to timespan
             if (this.params.startFadeOut !== undefined) return false;
+        }
+
+        if (this.params.endFadeIn !== undefined) {
+            if (this.params.endFadeIn <= 0) return false;
+
+            if (this.params.startFadeOut !== undefined) {
+                //Can't have overlapping fade-in and fade-out periods
+                if (this.params.startFadeOut < this.params.endFadeIn) return false;
+            }
         }
 
         if (this.params.rate !== undefined)

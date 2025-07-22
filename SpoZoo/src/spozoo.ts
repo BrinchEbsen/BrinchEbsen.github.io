@@ -1,5 +1,6 @@
 const enum ParticleType {
     Sparkle,
+    Wisp,
     Sweat,
     Generic
 };
@@ -105,6 +106,15 @@ class SpoZoo {
         this.scene.particles.set(ParticleType.Sparkle,
             new ParticleSys(SparkleFrames, {
                 loop: false,
+                rate: 0.25
+            })
+        );
+        this.scene.particles.set(ParticleType.Wisp,
+            new ParticleSys(WispFrames, {
+                loop: true,
+                lifespan: 60,
+                endFadeIn: 20,
+                startFadeOut: 40,
                 rate: 0.25
             })
         );

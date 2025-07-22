@@ -18,6 +18,7 @@ const SpoFleeRandomTurnChance = 0.1;
 
 const SpoParticleSparkleChance = 0.03;
 const SpoParticleSweatChance = 0.2;
+const SpoParticleWispChance = 0.03;
 
 const SpoFrameSize = 128;
 const SpoBoundsBoxOffset: Vec = {x: 32, y: 32};
@@ -417,6 +418,32 @@ class Spo implements Sprite {
         )
     }
 
+    spawnWispParticle(scene: SpoZooScene): void {
+        const sys = scene.particles.get(ParticleType.Wisp);
+        if (!sys) return;
+
+        const x = randomFromTo(
+            this.pos.x + SpoBoundsBoxOffset.x + 20,
+            this.pos.x + SpoBoundsBoxOffset.x + SpoBoundBoxSize - 20
+        );
+
+        const y = randomFromTo(
+            this.pos.y + SpoBoundsBoxOffset.y + 20,
+            this.pos.y + SpoBoundBoxSize + SpoBoundsBoxOffset.y
+        );
+
+        //Fly to the left if on the left, and vice versa
+        const xVel = x < this.middlePos.x ? -0.1 : 0.1;
+
+        sys.addParticle({x: x, y: y},
+            {
+                flyInDirection: {
+                    vel: {x: xVel, y: -0.2}
+                }
+            }
+        )
+    }
+
     spawnSweatParticle(scene: SpoZooScene): void {
         const sys = scene.particles.get(ParticleType.Sweat);
         if (!sys) return;
@@ -454,6 +481,10 @@ class Spo implements Sprite {
         if (this.type === "gold") {
             if (randomBool(SpoParticleSparkleChance)) {
                 this.spawnSparkleParticle(scene);
+            }
+        } else if (this.type === "void") {
+            if (randomBool(SpoParticleWispChance)) {
+                this.spawnWispParticle(scene);
             }
         }
 

@@ -8,6 +8,7 @@ const SpoSpinChance = 0.002;
 const SpoFleeRandomTurnChance = 0.1;
 const SpoParticleSparkleChance = 0.03;
 const SpoParticleSweatChance = 0.2;
+const SpoParticleWispChance = 0.03;
 const SpoFrameSize = 128;
 const SpoBoundsBoxOffset = { x: 32, y: 32 };
 const SpoBoundBoxSize = 64;
@@ -299,8 +300,21 @@ class Spo {
             }
         });
     }
-    spawnSweatParticle(scene) {
+    spawnWispParticle(scene) {
         const sys = scene.particles.get(1);
+        if (!sys)
+            return;
+        const x = randomFromTo(this.pos.x + SpoBoundsBoxOffset.x + 20, this.pos.x + SpoBoundsBoxOffset.x + SpoBoundBoxSize - 20);
+        const y = randomFromTo(this.pos.y + SpoBoundsBoxOffset.y + 20, this.pos.y + SpoBoundBoxSize + SpoBoundsBoxOffset.y);
+        const xVel = x < this.middlePos.x ? -0.1 : 0.1;
+        sys.addParticle({ x: x, y: y }, {
+            flyInDirection: {
+                vel: { x: xVel, y: -0.2 }
+            }
+        });
+    }
+    spawnSweatParticle(scene) {
+        const sys = scene.particles.get(2);
         if (!sys)
             return;
         const randomVec = vecFromAngle(randomBool()
@@ -322,6 +336,11 @@ class Spo {
         if (this.type === "gold") {
             if (randomBool(SpoParticleSparkleChance)) {
                 this.spawnSparkleParticle(scene);
+            }
+        }
+        else if (this.type === "void") {
+            if (randomBool(SpoParticleWispChance)) {
+                this.spawnWispParticle(scene);
             }
         }
         if (this.state === 5) {

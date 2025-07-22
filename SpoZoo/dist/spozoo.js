@@ -48,19 +48,26 @@ class SpoZoo {
             loop: false,
             rate: 0.25
         }));
-        this.scene.particles.set(1, new ParticleSys([MiscFrames.get("sweat")], {
+        this.scene.particles.set(1, new ParticleSys(WispFrames, {
+            loop: true,
+            lifespan: 60,
+            endFadeIn: 20,
+            startFadeOut: 40,
+            rate: 0.25
+        }));
+        this.scene.particles.set(2, new ParticleSys([MiscFrames.get("sweat")], {
             loop: true,
             lifespan: 8,
             startFadeOut: 0,
             size: 0.5
         }));
-        this.scene.particles.set(2, new ParticleSys([MiscFrames.get("whitecircle")], {
+        this.scene.particles.set(3, new ParticleSys([MiscFrames.get("whitecircle")], {
             loop: true,
             lifespan: 8
         }));
     }
     spawnGenericParticleEffect(pos, range, speed) {
-        const sys = this.scene.particles.get(2);
+        const sys = this.scene.particles.get(3);
         if (sys === undefined)
             return;
         const oneEighthAng = Math.PI / 4;
