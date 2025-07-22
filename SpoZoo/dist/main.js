@@ -15,12 +15,17 @@ function saveData() {
         }
     }
 }
-function loadData(alertIfNone = true) {
+function loadData(alertBeforeOverride = true, alertIfNone = true) {
     if (!game)
         return;
     try {
         const saveStr = localStorage.getItem(SaveDataKey);
         if (saveStr != null) {
+            if (alertBeforeOverride) {
+                const res = confirm("Are you sure you want to override the current scene with your saved data?");
+                if (!res)
+                    return;
+            }
             const save = JSON.parse(saveStr);
             game.loadSaveData(save);
         }
@@ -126,6 +131,19 @@ function main() {
     setupEvents();
     setupMenu();
     game.startDrawLoop(CANVAS, CTX);
-    loadData(false);
+    loadData(false, false);
 }
-preloadAllFrames().then(main);
+function setupLoadingScreen() {
+    CANVAS.width = 300;
+    CANVAS.height = 60;
+    CTX.fillStyle = "black";
+    CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
+    CTX.fillStyle = "white";
+    CTX.font = "30px Arial";
+    CTX.fillText("Loading frames...", 10, 40);
+}
+function init() {
+    setupLoadingScreen();
+    preloadAllFrames().then(main);
+}
+init();

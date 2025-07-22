@@ -29,7 +29,7 @@ class SpoZoo {
         };
         this.setDimensions(this.scene.width, this.scene.height);
         this.createParticleSystems();
-        this.spoDensityTarget = 0.5;
+        this.spoDensityTarget = 0.4;
         this.tileBuildState = {
             build: false,
             remove: false,

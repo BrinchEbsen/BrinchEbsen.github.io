@@ -1,5 +1,11 @@
+/**
+ * Represents a 2D vector or position.
+ */
 type Vec = { x: number, y: number };
 
+/**
+ * A string representing one (or none) of eight directions.
+ */
 type DirectionName = 
     "none" |
     "up" |
@@ -49,6 +55,12 @@ function vecSub(vec1: Vec, vec2: Vec): Vec {
     };
 }
 
+/**
+ * Check if two vectors are equal.
+ * @param vec1 First vector.
+ * @param vec2 Second vector.
+ * @returns True if the vectors have equal components.
+ */
 function vecEquals(vec1: Vec, vec2: Vec): boolean {
     return (vec1.x === vec2.x) && (vec1.y === vec2.y);
 }
@@ -156,6 +168,12 @@ function vecGetAngle(vec: Vec): number {
     return Math.atan2(vec.x, vec.y);
 }
 
+/**
+ * Create a new vector which is rotated by the given angle.
+ * @param vec Input vector.
+ * @param ang Angle to rotate by.
+ * @returns A copy of the input vector rotated by the angle.
+ */
 function vecTurnByAngle(vec: Vec, ang: number): Vec {
     return {
         x: Math.cos(ang)*vec.x - Math.sin(ang)*vec.y,

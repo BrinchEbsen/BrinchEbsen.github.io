@@ -84,7 +84,7 @@ class SpoZoo {
 
         this.createParticleSystems();
 
-        this.spoDensityTarget = 0.5;
+        this.spoDensityTarget = 0.4;
 
         this.tileBuildState = {
             build: false,
