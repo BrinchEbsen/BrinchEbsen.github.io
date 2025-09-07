@@ -85,3 +85,7 @@ button:active {
 .mouseHidden {
     cursor: none;
 }
+
+a:visited {
+    color: rgb(215, 53, 255);
+}
