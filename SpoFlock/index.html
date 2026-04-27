@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPO FLOCK</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="assets/icon.png">
+</head>
+<body>
+    <div class="rowmenu">
+        <div class="rowmenuelem">
+            <h1>Spo Count:</h1>
+            <input type="range" min="0" max="500" value="200" step="1" id="spo-count-slider">
+        </div>
+        <div class="rowmenuelem">
+            <h1>Target Speed:</h1>
+            <input type="range" min="1" max="10" value="5" step="0.1" id="speed-slider">
+        </div>
+        <div class="rowmenuelem">
+            <h1>Separation:</h1>
+            <input type="range" min="0" max="100" value="20" step="0.1" id="separate-slider">
+        </div>
+        <div class="rowmenuelem">
+            <h1>Alignment:</h1>
+            <input type="range" min="0" max="100" value="20" step="0.1" id="alignment-slider">
+        </div>
+        <div class="rowmenuelem">
+            <h1>Cohesion:</h1>
+            <input type="range" min="0" max="5" value="0.5" step="0.1" id="cohesion-slider">
+        </div>
+        <div class="rowmenuelem">
+            <h1>Cursor Bias:</h1>
+            <input type="range" min="0" max="1" value="0" step="0.1" id="cursor-bias-slider">
+        </div>
+    </div>
+    <div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="dist/basetypes.js"></script>
+    <script src="dist/util.js"></script>
+    <script src="dist/random.js"></script>
+    <script src="dist/vector.js"></script>
+    <script src="dist/images.js"></script>
+    <script src="dist/canvas.js"></script>
+    <script src="dist/sprite_animation.js"></script>
+    <script src="dist/particle_sys.js"></script>
+    <script src="dist/spo.js"></script>
+    <script src="dist/spozoo.js"></script>
+    <script src="dist/main.js"></script>
+</body>
+</html>
