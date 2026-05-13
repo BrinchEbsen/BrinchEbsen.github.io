@@ -10,6 +10,8 @@ type SpoZooScene = {
     particles: Map<ParticleType, ParticleSys>
 };
 
+let SpoSceneBackgroundColor = "black";
+
 let SpoSceneTargetCount = 200;
 
 class SpoZoo {
@@ -152,7 +154,7 @@ class SpoZoo {
     }
 
     private drawFrame(ctx : CanvasRenderingContext2D): void {
-        ctx.fillStyle = "black";
+        ctx.fillStyle = SpoSceneBackgroundColor;
         ctx.fillRect(0, 0, this.scene.width, this.scene.height);
 
         let sprites: Sprite[] = this.scene.spos;

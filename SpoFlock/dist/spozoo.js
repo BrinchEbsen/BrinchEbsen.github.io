@@ -1,5 +1,6 @@
 "use strict";
 ;
+let SpoSceneBackgroundColor = "black";
 let SpoSceneTargetCount = 200;
 class SpoZoo {
     constructor(fps = 60) {
@@ -100,7 +101,7 @@ class SpoZoo {
         });
     }
     drawFrame(ctx) {
-        ctx.fillStyle = "black";
+        ctx.fillStyle = SpoSceneBackgroundColor;
         ctx.fillRect(0, 0, this.scene.width, this.scene.height);
         let sprites = this.scene.spos;
         sprites.sort((a, b) => {
